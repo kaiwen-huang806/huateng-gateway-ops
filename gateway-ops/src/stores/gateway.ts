@@ -6,6 +6,7 @@ import type {
   DeviceLogRow,
   DeviceStatus,
   LogLevel,
+  LogSource,
   OtaBatch,
   OtaBatchStats,
   OtaFailureCode,
@@ -29,6 +30,10 @@ const OTA_FAILURE_MESSAGE: Record<OtaFailureCode, string> = {
   timeout: '设备无响应（超时）',
   offline: '设备离线，无法下发；确认设备在线后可重试',
 }
+
+// 运维台自己下发的动作（参数控制、OTA 下发）都记在「华住IOT平台」这个动作来源下：
+// 数值与网关协议的动作来源枚举对齐（见 utils/logs.ts 的 LOG_SOURCE_LABEL）。
+const CONSOLE_LOG_SOURCE: LogSource = 11
 
 // 可注入的故障（不含 offline：那是排队期间掉线才出现的真实情况）。
 type InjectableFault = Exclude<OtaFailureCode, 'offline'>
@@ -146,12 +151,18 @@ export const useGatewayStore = defineStore('gateway', () => {
     deviceTab.value = 'ota'
   }
 
-  function addLog(device: Device, level: LogLevel, message: string) {
+  function addLog(
+    device: Device,
+    level: LogLevel,
+    message: string,
+    source: LogSource = CONSOLE_LOG_SOURCE,
+  ) {
     // 现场产生的日志时间取当前时刻；展示列统一写「刚刚」，完整时间在日志弹窗里能看到。
     device.logs.unshift({
       at: nowLogAt(),
       time: '刚刚',
       level,
+      source,
       message,
     })
   }

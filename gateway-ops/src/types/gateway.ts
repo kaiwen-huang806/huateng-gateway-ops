@@ -6,6 +6,10 @@ export type DeviceType =
   'light' | 'ac' | 'curtain' | 'lock' | 'nightlight' | 'kettle' | 'tv' | 'thermostat'
 export type DeviceStatus = 'ok' | 'warn' | 'err'
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR'
+// 动作来源：这条日志由谁触发（客人按键 / 传感器采样 / 平台下发 / 本地联动 …）。
+// 取值与网关协议的动作来源枚举一致，值 → 文案的映射与展示顺序见 utils/logs.ts。
+export type LogSource =
+  -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 16 | 17 | 20 | 21 | 22 | 99
 // 目标固件相对设备当前固件的动作：升级 / 同版本重刷 / 降级。
 export type UpgradeKind = 'upgrade' | 'reflash' | 'downgrade'
 // OTA 任务状态：待机 / 排队等槽位 / 传输固件 / 写入固件 / 成功 / 失败 / 被停止下发。
@@ -50,6 +54,8 @@ export interface DeviceLog {
   // 展示用时间：刚产生的日志显示「刚刚」，历史日志显示 MM-DD HH:mm:ss。
   time: string
   level: LogLevel
+  // 动作来源：产生这条日志的一方（客人操作 / 传感器 / 平台控制台 …）。
+  source: LogSource
   message: string
 }
 

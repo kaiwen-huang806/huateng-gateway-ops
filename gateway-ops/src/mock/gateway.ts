@@ -9,7 +9,15 @@ import {
   ThermometerSun,
   Tv,
 } from '@lucide/vue'
-import type { Device, DeviceLog, DeviceMeta, DeviceType, LogLevel, Room } from '@/types/gateway'
+import type {
+  Device,
+  DeviceLog,
+  DeviceMeta,
+  DeviceType,
+  LogLevel,
+  LogSource,
+  Room,
+} from '@/types/gateway'
 import { LOG_AT_FORMAT, LOG_DISPLAY_FORMAT, sortLogsDesc } from '@/utils/logs'
 
 export const floors = ['3F', '5F', '8F', '10F', '12F']
@@ -119,16 +127,25 @@ export const createDevices = (): Device[] =>
 // 这样任何时候打开演示都能在默认区间里查到数据。
 const LOG_HISTORY_DAYS = 6
 
-const LOG_TEMPLATES: { level: LogLevel; message: string }[] = [
-  { level: 'INFO', message: '指令执行成功（响应 42ms）' },
-  { level: 'INFO', message: '定时场景触发：回房模式' },
-  { level: 'WARN', message: '信号强度偏低（RSSI < -75）' },
-  { level: 'INFO', message: '参数同步完成' },
-  { level: 'ERROR', message: '指令执行失败（校验错误）' },
-  { level: 'WARN', message: '离线后自动重连成功（中断 12s）' },
-  { level: 'INFO', message: '设备上线，注册到网关成功' },
-  { level: 'INFO', message: '能耗上报：本时段 0.4kWh' },
+// 日志模板：每条都带上动作来源（网关协议里的来源枚举），文案与来源相互对得上，
+// 例如客人按键下发的指令就记在「客房内按键开关」下。这里覆盖了客人操作、设备侧采样、
+// 平台下发与本地联动等来源，日志中心的动作来源筛选才有可对照的样本。
+const LOG_TEMPLATES: { level: LogLevel; source: LogSource; message: string }[] = [
+  { level: 'INFO', source: 3, message: '指令执行成功（响应 42ms）' },
+  { level: 'INFO', source: 16, message: '定时场景触发：回房模式' },
+  { level: 'WARN', source: 7, message: '信号强度偏低（RSSI < -75）' },
+  { level: 'INFO', source: 11, message: '参数同步完成' },
+  { level: 'ERROR', source: 6, message: '指令执行失败（校验错误）' },
+  { level: 'WARN', source: 16, message: '离线后自动重连成功（中断 12s）' },
+  { level: 'INFO', source: 16, message: '设备上线，注册到网关成功' },
+  { level: 'INFO', source: 7, message: '能耗上报：本时段 0.4kWh' },
+  { level: 'INFO', source: 12, message: '语音指令下发成功（音量 20）' },
+  { level: 'WARN', source: 9, message: '面板本地操作：温度 24℃' },
 ]
+
+// 补错误记录时复用的模板：级别、文案、动作来源三处一起改，避免出现「来源是传感器、
+// 文案却是按键失败」这种对不上的日志。
+const LOG_ERROR_TEMPLATE = LOG_TEMPLATES.find((template) => template.level === 'ERROR')!
 
 // 线性同余：同一台设备每次生成的日志完全一致，测试与截图都可复现。
 function seededRandom(seed: number) {
@@ -158,6 +175,7 @@ function createLogs(seed: number): DeviceLog[] {
         at: at.format(LOG_AT_FORMAT),
         time: at.format(LOG_DISPLAY_FORMAT),
         level: template.level,
+        source: template.source,
         message: template.message,
       })
     }
@@ -167,8 +185,9 @@ function createLogs(seed: number): DeviceLog[] {
   if (!logs.some((log) => log.level === 'ERROR')) {
     const target = logs[1] ?? logs[0]
     if (target) {
-      target.level = 'ERROR'
-      target.message = '指令执行失败（校验错误）'
+      target.level = LOG_ERROR_TEMPLATE.level
+      target.message = LOG_ERROR_TEMPLATE.message
+      target.source = LOG_ERROR_TEMPLATE.source
     }
   }
   return sortLogsDesc(logs)

@@ -54,7 +54,9 @@ tr:hover td {
   flex-wrap: wrap;
   gap: 12px;
 }
-.date-field {
+// 筛选区的字段统一「上标签、下控件」的竖向排布：日期框走等宽字体，动作来源是中文下拉。
+.date-field,
+.source-field {
   display: grid;
   gap: 6px;
   color: var(--muted);
@@ -71,9 +73,19 @@ tr:hover td {
     12px Consolas,
     monospace;
 }
-.date-field input:focus {
+.date-field input:focus,
+.source-field select:focus {
   border-color: var(--border-strong);
   outline: 0;
+}
+.source-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0e1830;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
 }
 .range-presets {
   display: flex;

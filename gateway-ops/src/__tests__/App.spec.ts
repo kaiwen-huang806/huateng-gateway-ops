@@ -8,7 +8,7 @@ import router from '../router'
 import App from '../App.vue'
 import type { ViewKey } from '../types/gateway'
 import { useGatewayStore } from '../stores/gateway'
-import { latestLogOf, logsInDateRange } from '../utils/logs'
+import { latestLogOf, logSourceText, logSourcesOf, logsInDateRange } from '../utils/logs'
 import { DEMO_ACCOUNT, DEMO_PASSWORD, authenticate } from '../utils/auth'
 
 const viewKeys: ViewKey[] = ['overview', 'rooms', 'ota', 'logs', 'settings']
@@ -1149,6 +1149,7 @@ describe('App', () => {
         device.room,
         device.name,
         log.level,
+        logSourceText(log.source),
         log.message,
         '查看以往日志',
       ])
@@ -1162,15 +1163,16 @@ describe('App', () => {
       store.devices.filter((device) => device.room === target.room).length,
     )
     const targetRow = roomRows.find((row) => row.text().includes(target.name))!
-    expect(targetRow.findAll('td')[4]!.text()).toBe(latest.message)
+    expect(targetRow.findAll('td')[5]!.text()).toBe(latest.message)
     expect(targetRow.find('.text-button').exists()).toBe(true)
 
-    // 工具栏：房间号搜索排在最前，其后是设备类型与级别；楼层筛选已去掉。
+    // 工具栏：房间号搜索排在最前，其后是设备类型、级别与动作来源；楼层筛选已去掉。
     const labels = wrapper.findAll('.toolbar label')
     expect(labels.map((label) => label.text().split(/\s/)[0])).toEqual([
       '房间号',
       '设备类型',
       '级别',
+      '动作来源',
     ])
     expect(wrapper.find('.toolbar').text()).not.toContain('楼层')
     const roomSearch = wrapper.find('.log-room-search input')
@@ -1215,6 +1217,30 @@ describe('App', () => {
       `共 ${expectedCombined.length} 台设备`,
     )
 
+    // 动作来源：选项取表格里实际出现过的来源（按协议枚举顺序），筛的是日志自己的来源字段。
+    const sourceFilter = labels[3]!.find('select')
+    const expectedSources = logSourcesOf(store.deviceLogs.map((row) => row.log))
+    expect(expectedSources.length).toBeGreaterThan(1)
+    expect(sourceFilter.findAll('option').map((option) => option.text())).toEqual([
+      '全部来源',
+      ...expectedSources.map((value) => logSourceText(value)),
+    ])
+    // 放开前面叠加的条件，单独验证动作来源：每个选项都能筛出同来源的那几行。
+    await typeFilter.setValue('all')
+    await levelFilter.setValue('全部级别')
+    await roomSearch.setValue('')
+    await flushPromises()
+    for (const value of expectedSources) {
+      await sourceFilter.setValue(value)
+      await flushPromises()
+      const expectedRows = store.deviceLogs.filter((row) => row.log.source === value)
+      expect(expectedRows.length).toBeGreaterThan(0)
+      expect(dataRows()).toHaveLength(expectedRows.length)
+    }
+    await sourceFilter.setValue('all')
+    await flushPromises()
+    expect(dataRows()).toHaveLength(store.deviceLogs.length)
+
     // 搜索框只查房间号：日志描述里的文字不再参与匹配。
     await roomSearch.setValue('指令执行失败')
     await flushPromises()
@@ -1243,6 +1269,13 @@ describe('App', () => {
     const dialog = wrapper.find('.log-history-dialog')
     expect(dialog.exists()).toBe(true)
     expect(dialog.text()).toContain(`${target.room} · ${target.name} · 以往日志`)
+    // 列顺序：动作来源夹在级别与描述之间。
+    expect(dialog.findAll('thead th').map((th) => th.text())).toEqual([
+      '时间',
+      '级别',
+      '动作来源',
+      '描述',
+    ])
 
     // 默认查最近 7 天：这台设备的历史日志（多日）都在区间里，一条不少。
     const dates = target.logs.map((log) => log.at.slice(0, 10))
@@ -1266,9 +1299,14 @@ describe('App', () => {
     await dateInputs[1]!.trigger('change')
     expect(dialog.findAll('tbody tr')).toHaveLength(expectedDay.length)
     expect(dialog.text()).toContain(`共 ${expectedDay.length} 条`)
-    for (const row of dialog.findAll('tbody tr')) {
-      expect(row.find('td').text().startsWith(day)).toBe(true)
-    }
+    dialog.findAll('tbody tr').forEach((row, index) => {
+      const log = expectedDay[index]!
+      const cells = row.findAll('td')
+      expect(cells[0]!.text()).toBe(`${day} ${log.at.slice(11)}`)
+      expect(cells[1]!.text()).toBe(log.level)
+      expect(cells[2]!.text()).toBe(logSourceText(log.source))
+      expect(cells[3]!.text()).toBe(log.message)
+    })
 
     // 起点晚于终点时无法查询，起点会自动带上终点，避免筛出空结果。
     await dateInputs[0]!.setValue('2099-01-01')
@@ -1297,6 +1335,24 @@ describe('App', () => {
     await dateInputs[1]!.trigger('change')
     expect((dateInputs[1]!.element as HTMLInputElement).value).toBe(newest)
     expect(dialog.findAll('tbody tr')).toHaveLength(target.logs.length)
+
+    // 动作来源：选项只取这台设备日志里出现过的来源，筛完仍能对上表格里的来源列。
+    const sourceSelect = dialog.find('.source-field select')
+    const deviceSources = logSourcesOf(target.logs)
+    expect(deviceSources.length).toBeGreaterThan(1)
+    expect(sourceSelect.findAll('option').map((option) => option.text())).toEqual([
+      '全部来源',
+      ...deviceSources.map((value) => logSourceText(value)),
+    ])
+    const pickedSource = deviceSources[0]!
+    await sourceSelect.setValue(pickedSource)
+    await flushPromises()
+    const expectedBySource = target.logs.filter((log) => log.source === pickedSource)
+    expect(dialog.findAll('tbody tr')).toHaveLength(expectedBySource.length)
+    expect(dialog.text()).toContain(`共 ${expectedBySource.length} 条`)
+    for (const row of dialog.findAll('tbody tr')) {
+      expect(row.findAll('td')[2]!.text()).toBe(logSourceText(pickedSource))
+    }
 
     await dialog.find('.confirm-footer .ghost-button').trigger('click')
     await nextTick()
