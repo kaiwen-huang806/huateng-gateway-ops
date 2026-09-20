@@ -1,0 +1,119 @@
+// 日志页：数据表格。搜索框被日志页和 OTA 页共用，样式见 components/_controls.scss。
+.table-panel {
+  padding: 0;
+  overflow: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+th,
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #16223c;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: #0d1729;
+  color: var(--muted);
+  font-size: 11px;
+}
+td {
+  font-size: 12px;
+}
+tr:hover td {
+  background: #0e1830;
+}
+.mono {
+  color: var(--muted);
+  font-family: Consolas, monospace;
+}
+.empty-row {
+  padding: 26px 16px;
+  color: var(--dim);
+  text-align: center;
+}
+// 表格里的「查看以往日志」入口：沿用 shared 里的文字按钮样式，只压小一号。
+.table-panel .text-button {
+  font-size: 11px;
+}
+// 房间号搜索：只查房间号，输入框按房间号长度收窄（与 OTA 页的房间筛选一致）。
+.log-room-search input {
+  width: 90px;
+}
+
+// 「查看以往日志」弹窗：条件区 + 可滚动的日志表。
+// 外框尺寸直接沿用 .device-modal（_modal.scss），这里只管里面的查询条件与表格：
+// 弹窗高度交给内容决定（超出视口由 .modal-backdrop 滚动），只有表格内部滚动，
+// 这样表头能靠 sticky 一直留在可视区，长历史也不会把弹窗撑到屏幕之外。
+.log-filter {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.date-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.date-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0e1830;
+  color: var(--text);
+  color-scheme: dark;
+  font:
+    12px Consolas,
+    monospace;
+}
+.date-field input:focus {
+  border-color: var(--border-strong);
+  outline: 0;
+}
+.range-presets {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.chip {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #0e1830;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+.chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.log-history-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 15px 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.log-history-table {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #070d18;
+}
+.log-history-table th {
+  background: #0d1729;
+}
+.log-history-empty {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--dim);
+  text-align: center;
+}

@@ -1,0 +1,157 @@
+// OTA 页：工具栏房间号搜索框、升级列表与升级进度条。
+.ota-room-search input {
+  width: 90px;
+}
+.ota-list {
+  display: grid;
+  gap: 13px;
+}
+// 批量选择模式：工具栏操作区、类型锁定提示、勾选框与选中态卡片。
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.batch-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.batch-hint svg {
+  flex: none;
+  color: var(--accent);
+}
+.ota-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+.ota-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.ota-check input:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.ota-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 19px;
+  border-radius: 14px;
+}
+.ota-item.picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px #2dd4ff22;
+}
+// 行内 OTA 结果：失败是持久状态，成功是短状态，两者都占进度条的位置，视线不用跳。
+.ota-failed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 9px;
+}
+// 注意：这段用 div 而不是 span，否则会被 _cards.scss 里 `.ota-info span`（副文案的
+// 灰色块级样式）盖掉，导致文字不红、与图标错位。
+.ota-info .ota-failed-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--err);
+  font-size: 12px;
+}
+.ota-failed-text svg {
+  flex: none;
+}
+.ota-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  color: var(--ok);
+  font-size: 12px;
+}
+.ota-success svg {
+  flex: none;
+}
+// 排队等槽位 / 被停止下发。
+.ota-waiting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ota-waiting svg {
+  flex: none;
+}
+// 工具栏上的批次入口与角标。
+.batch-entry {
+  gap: 8px;
+}
+.batch-entry.running {
+  border-color: #2c5a72;
+}
+.batch-badge {
+  padding: 3px 7px;
+  border: 1px solid #2c5a72;
+  border-radius: 999px;
+  background: #0d2434;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.batch-badge.done {
+  border-color: var(--border-strong);
+  background: #0e1830;
+  color: var(--muted);
+}
+// 开发环境的故障注入控件：正式构建里不会渲染。
+.dev-injection {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--dim);
+}
+.dev-injection select {
+  border-color: #6b4a12;
+  color: var(--warn);
+}
+.dev-badge {
+  padding: 3px 6px;
+  border: 1px solid #6b4a12;
+  border-radius: 6px;
+  background: #1f1808;
+  color: var(--warn);
+  font-size: 10px;
+}
+.ota-info {
+  flex: 1;
+  min-width: 0;
+}
+.ota-info span {
+  font-family: Consolas, monospace;
+}
+.progress-wrap {
+  margin-top: 10px;
+}
+.progress-wrap i {
+  height: 7px;
+}
+.progress-wrap small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+}

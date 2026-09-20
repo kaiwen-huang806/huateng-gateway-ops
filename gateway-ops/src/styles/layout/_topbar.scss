@@ -1,0 +1,95 @@
+// 主区域骨架：顶栏、内容滚动区、图标按钮、在线脉冲动画。
+.main-area {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.topbar {
+  height: 86px;
+  flex: 0 0 86px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0e1726, #0a1120);
+}
+.topbar h1 {
+  margin: 0;
+  color: #eef3ff;
+  font-size: 21px;
+  letter-spacing: 0.5px;
+}
+.topbar p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  margin-left: auto;
+}
+.top-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.top-stat span {
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.top-stat b {
+  font:
+    14px Consolas,
+    monospace;
+}
+.online-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 17px;
+  border: 1px solid #1d5a3a;
+  border-radius: 22px;
+  background: #0f2a1c;
+  color: var(--ok);
+  font-weight: 700;
+}
+.online-pill .status-dot {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 28px 32px 40px;
+}
+.icon-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-button:hover {
+  background: #182540;
+  color: #fff;
+}
+.menu-button {
+  display: none;
+}

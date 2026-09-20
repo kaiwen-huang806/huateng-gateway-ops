@@ -1,0 +1,326 @@
+// 登录页：蓝色渐变底 + 左侧 2.5D 物联网插画簇 + 右偏居中的白色登录卡片。
+//
+// 整页是浅色视觉，和运维台的深色令牌体系不同，所以自带一组局部变量，
+// 全部挂在 .login-page 上，不会外溢到其他页面。
+//
+// --login-scale 是整卡的统一缩放：卡片尺寸、内边距、圆角、字号全部按它等比换算。
+// 想整体放大/缩小登录框，只改这一个数即可，不需要逐个属性去调。
+.login-page {
+  --login-scale: 0.9;
+  --login-blue: #2b5ff0;
+  --login-ink: #1b2540;
+  --login-muted: #8b98b8;
+  --login-placeholder: #a9b5cd;
+  --login-line: #e4eaf6;
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 700px at 74% 94%, #3ea2ff80, transparent 62%),
+    radial-gradient(760px 640px at 2% 0%, #6b4bff52, transparent 60%),
+    linear-gradient(152deg, #3a2bd6 0%, #2b3fe4 36%, #2559ef 68%, #1f7df7 100%);
+}
+
+// 宽屏把卡片右移，左侧整片留给插画簇——这是参考图最关键的一条构图。
+// padding-left 越大，卡片中心越靠右（卡片中心 = (padding-left + 100vw) / 2）。
+@media (min-width: 900px) {
+  .login-page {
+    padding-left: 40vw;
+  }
+}
+
+// ── 背景层 ────────────────────────────────────────────────
+.login-scene {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+// 卡片正后方压一层很淡的暗调：白卡落在亮插画上时边界会更清楚。
+.login-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(620px 560px at 65.5% 50%, #0b1a5230, transparent 72%);
+  pointer-events: none;
+}
+
+// ── 登录卡片 ──────────────────────────────────────────────
+.login-card {
+  position: relative;
+  z-index: 2;
+  width: min(calc(432px * var(--login-scale)), 100%);
+  padding: calc(44px * var(--login-scale)) calc(44px * var(--login-scale))
+    calc(26px * var(--login-scale));
+  border-radius: calc(28px * var(--login-scale));
+  background: #fff;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px #ffffffb3 inset,
+    0 calc(34px * var(--login-scale)) calc(68px * var(--login-scale))
+      calc(-20px * var(--login-scale)) #0a1450b8,
+    0 calc(8px * var(--login-scale)) calc(20px * var(--login-scale))
+      calc(-12px * var(--login-scale)) #0a145070;
+}
+
+.login-title {
+  margin: 0;
+  color: var(--login-ink);
+  font-size: calc(22px * var(--login-scale));
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.login-subtitle {
+  margin: calc(8px * var(--login-scale)) 0 calc(26px * var(--login-scale));
+  color: var(--login-muted);
+  font-size: calc(12px * var(--login-scale));
+  letter-spacing: 0.5px;
+}
+
+// ── 表单 ──────────────────────────────────────────────────
+.login-form {
+  text-align: left;
+}
+
+.login-field {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--login-scale));
+  padding: calc(6px * var(--login-scale)) calc(2px * var(--login-scale));
+  border-bottom: 1px solid var(--login-line);
+  transition: border-color 0.18s;
+}
+
+.login-field + .login-field {
+  margin-top: calc(18px * var(--login-scale));
+}
+
+// 焦点态：下划线、图标一起变蓝，比给 input 加外框更贴合下划线风格。
+.login-field:focus-within {
+  border-bottom-color: var(--login-blue);
+}
+
+.login-field-icon {
+  flex: 0 0 auto;
+  width: calc(18px * var(--login-scale));
+  height: calc(18px * var(--login-scale));
+  color: #b3c0da;
+  transition: color 0.18s;
+}
+
+.login-field:focus-within .login-field-icon {
+  color: var(--login-blue);
+}
+
+.login-field input {
+  flex: 1;
+  min-width: 0;
+  height: calc(38px * var(--login-scale));
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--login-ink);
+  font-size: calc(14px * var(--login-scale));
+}
+
+.login-field input::placeholder {
+  color: var(--login-placeholder);
+}
+
+// Edge / IE 会给 type=password 自带一个「显示密码」小眼睛，和右侧自绘的按钮重叠，
+// 会出现两只眼睛。统一藏掉浏览器那只，显示 / 隐藏只由我们的按钮负责。
+// （::-ms-clear 同理，是旧版 Edge 在文本框里塞的清除叉。）
+.login-field input::-ms-reveal,
+.login-field input::-ms-clear {
+  display: none;
+}
+
+// 浏览器自动填充会把输入框刷成黄色，这里盖回白底。
+.login-field input:-webkit-autofill,
+.login-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--login-ink);
+  box-shadow: 0 0 0 40px #fff inset;
+}
+
+.login-eye {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: calc(30px * var(--login-scale));
+  height: calc(30px * var(--login-scale));
+  border-radius: calc(8px * var(--login-scale));
+  background: transparent;
+  color: var(--login-placeholder);
+  cursor: pointer;
+  transition:
+    color 0.16s,
+    background-color 0.16s;
+}
+
+.login-eye svg {
+  width: calc(18px * var(--login-scale));
+  height: calc(18px * var(--login-scale));
+}
+
+.login-eye:hover {
+  background: #f1f5ff;
+  color: var(--login-blue);
+}
+
+// 固定高度：报错只换内容，卡片不会被撑高、按钮不会跳。
+.login-messages {
+  min-height: calc(30px * var(--login-scale));
+  padding: calc(12px * var(--login-scale)) 0 0;
+}
+
+.login-messages p {
+  margin: 0;
+  font-size: calc(12px * var(--login-scale));
+  line-height: calc(18px * var(--login-scale));
+}
+
+.login-error {
+  color: #e0405b;
+}
+
+.login-caps {
+  color: #d98324;
+}
+
+.login-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8px * var(--login-scale));
+  width: 100%;
+  height: calc(48px * var(--login-scale));
+  border-radius: calc(10px * var(--login-scale));
+  background: linear-gradient(135deg, #3d78ff, #2450e6);
+  color: #fff;
+  font-size: calc(15px * var(--login-scale));
+  font-weight: 600;
+  letter-spacing: calc(3px * var(--login-scale));
+  text-indent: calc(3px * var(--login-scale)); // 抵消字间距在末尾留下的空白，让「登录」视觉居中
+  cursor: pointer;
+  box-shadow: 0 calc(12px * var(--login-scale)) calc(24px * var(--login-scale))
+    calc(-10px * var(--login-scale)) #2b5ff0cc;
+  transition:
+    transform 0.16s,
+    box-shadow 0.2s,
+    filter 0.2s;
+}
+
+.login-submit svg {
+  width: calc(18px * var(--login-scale));
+  height: calc(18px * var(--login-scale));
+}
+
+.login-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow: 0 calc(16px * var(--login-scale)) calc(28px * var(--login-scale))
+    calc(-10px * var(--login-scale)) #2b5ff0e0;
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+.login-spinner {
+  animation: login-spin 0.8s linear infinite;
+}
+
+.login-foot {
+  margin: calc(22px * var(--login-scale)) 0 0;
+  color: #aeb9d1;
+  font-size: calc(11px * var(--login-scale));
+  letter-spacing: 0.3px;
+}
+
+// ── 插画动画 ──────────────────────────────────────────────
+// 注意：CSS 的 transform 会覆盖 SVG 的 transform 属性，所以需要保留倾斜的元素
+// 在外层多包一组（见 LoginIllustration.vue）。
+.login-scene .lx-float {
+  animation: lx-float 7.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.login-scene .lx-float-alt {
+  animation: lx-float 9.5s ease-in-out infinite reverse;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.login-scene .lx-flow {
+  animation: lx-dash 3.4s linear infinite;
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lx-float {
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes lx-dash {
+  to {
+    stroke-dashoffset: -96;
+  }
+}
+
+// ── 响应式 ────────────────────────────────────────────────
+@media (max-width: 1024px) {
+  .login-scene {
+    opacity: 0.85;
+  }
+}
+
+// 窄屏：插画退到上半屏（LoginIllustration 会同时切到左上对齐），卡片落到下半屏，
+// 两者上下分层而不是叠在一起。这里的取值同样跟着 --login-scale 缩放。
+@media (max-width: 760px) {
+  .login-page {
+    place-items: end center;
+    padding: 0 16px 36px;
+  }
+  .login-scene {
+    height: 62%;
+  }
+  .login-veil {
+    background: radial-gradient(420px 420px at 50% 76%, #0b1a5230, transparent 74%);
+  }
+  .login-card {
+    padding: calc(32px * var(--login-scale)) calc(24px * var(--login-scale))
+      calc(20px * var(--login-scale));
+    border-radius: calc(22px * var(--login-scale));
+  }
+  .login-title {
+    font-size: calc(18px * var(--login-scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-scene .lx-float,
+  .login-scene .lx-float-alt,
+  .login-scene .lx-flow,
+  .login-spinner {
+    animation: none;
+  }
+}

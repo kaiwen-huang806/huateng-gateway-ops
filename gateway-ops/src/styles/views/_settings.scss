@@ -1,0 +1,49 @@
+// 设置页：设置行与统计格。
+.settings-panel {
+  padding: 19px 24px;
+}
+.setting-row {
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #16223c;
+}
+.setting-row:last-child {
+  border-bottom: 0;
+}
+.setting-row div b,
+.setting-row div span {
+  display: block;
+}
+.setting-row div b {
+  font-size: 13px;
+}
+.setting-row div span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.setting-row code {
+  color: var(--text);
+  font:
+    12px Consolas,
+    monospace;
+  white-space: nowrap;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.stats-grid > div {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0c1526;
+}
+.stats-grid b {
+  display: block;
+  margin-top: 8px;
+  font:
+    700 25px Consolas,
+    monospace;
+}

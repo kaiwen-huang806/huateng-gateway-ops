@@ -1,19 +1,12 @@
 <script setup lang="ts">
 import { Menu } from '@lucide/vue'
-import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
 
 defineProps<{ mobileMenuOpen: boolean }>()
 const emit = defineEmits<{ 'toggle-menu': [] }>()
+const route = useRoute()
 const store = useGatewayStore()
-const titles = {
-  overview: ['态势概览', '酒店设备网关 · 全局运行态势'],
-  rooms: ['房间设备', '分楼层 / 分房间查看设备状态与下发控制'],
-  ota: ['OTA 升级中心', '批量或单设备固件升级管理'],
-  logs: ['日志中心', '全量设备运行与通信日志'],
-  settings: ['系统设置', '网关服务与访问配置'],
-} as const
-const title = computed(() => titles[store.currentView])
 </script>
 
 <template>
@@ -22,8 +15,8 @@ const title = computed(() => titles[store.currentView])
       <Menu :size="20" />
     </button>
     <div>
-      <h1>{{ title[0] }}</h1>
-      <p>{{ title[1] }}</p>
+      <h1>{{ route.meta.title }}</h1>
+      <p>{{ route.meta.subtitle }}</p>
     </div>
     <div class="topbar-status">
       <div class="top-stat"><span>网关 IP:PORT</span><b>192.168.1.10:8080</b></div>

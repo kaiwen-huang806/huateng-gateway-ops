@@ -1,14 +1,41 @@
 <script setup lang="ts">
 import { ArrowLeft, Building2, Cpu } from '@lucide/vue'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
-import DeviceModal from '@/components/devices/DeviceModal.vue'
+import type { Room } from '@/types/gateway'
 import SectionHeading from '@/components/common/SectionHeading.vue'
 
+const route = useRoute()
+const router = useRouter()
 const store = useGatewayStore()
+
+// 当前房间由路由参数决定，刷新 /rooms/803 时会直接回到该房间的设备清单。
+const selectedRoom = computed(() => {
+  const roomId = route.params.roomId
+  return (
+    store.rooms.find((room) => room.id === (Array.isArray(roomId) ? roomId[0] : roomId)) ?? null
+  )
+})
+
+const roomDevices = computed(() =>
+  selectedRoom.value
+    ? store.devices.filter((device) => selectedRoom.value?.devices.includes(device.id))
+    : [],
+)
+
+function openRoom(room: Room) {
+  router.push({ name: 'rooms', params: { roomId: room.id } })
+}
+
+function backToList() {
+  store.selectedFloor = selectedRoom.value?.floor ?? store.selectedFloor
+  router.push({ name: 'rooms' })
+}
 </script>
 
 <template>
-  <template v-if="!store.selectedRoom">
+  <template v-if="!selectedRoom">
     <div class="tabs">
       <button
         v-for="floor in store.floors"
@@ -31,7 +58,7 @@ const store = useGatewayStore()
         v-for="room in store.floorRooms"
         :key="room.id"
         class="room-card"
-        @click="store.openRoom(room)"
+        @click="openRoom(room)"
       >
         <div class="room-card-top">
           <div>
@@ -69,23 +96,23 @@ const store = useGatewayStore()
     </section>
   </template>
   <template v-else>
-    <button class="back-button" @click="store.selectedRoom = null">
-      <ArrowLeft :size="16" /> 返回 {{ store.selectedRoom.floor }}
+    <button class="back-button" @click="backToList">
+      <ArrowLeft :size="16" /> 返回 {{ selectedRoom.floor }}
     </button>
     <div class="breadcrumb">
-      房间设备 / <b>{{ store.selectedRoom.floor }}</b> /
-      <b>{{ store.selectedRoom.id }}（{{ store.selectedRoom.category }}）</b>
+      房间设备 / <b>{{ selectedRoom.floor }}</b> /
+      <b>{{ selectedRoom.id }}（{{ selectedRoom.category }}）</b>
     </div>
-    <SectionHeading :title="`${store.selectedRoom.id} 设备清单`" :icon="Cpu"
+    <SectionHeading :title="`${selectedRoom.id} 设备清单`" :icon="Cpu"
       ><template #default
         ><b class="count-tag"
-          >{{ store.selectedRoomDevices.length }} 台设备 · 点击查看详情 / 控制 / OTA</b
+          >{{ roomDevices.length }} 台设备 · 点击查看详情 / 控制 / OTA</b
         ></template
       ></SectionHeading
     >
     <section class="device-card-grid">
       <button
-        v-for="device in store.selectedRoomDevices"
+        v-for="device in roomDevices"
         :key="device.id"
         class="device-card"
         @click="store.openDevice(device)"
@@ -111,6 +138,5 @@ const store = useGatewayStore()
         </div>
       </button>
     </section>
-    <DeviceModal />
   </template>
 </template>

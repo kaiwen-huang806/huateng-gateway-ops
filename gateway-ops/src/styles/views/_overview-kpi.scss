@@ -1,0 +1,54 @@
+// 概览页 KPI 指标卡。开头一条组合选择器是 KPI / 面板 / 房间卡 / 设备卡 / OTA 项共用的
+// 卡片基底（border + background），这些类的其它声明散落在各自的分片里。
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.kpi-card,
+.panel,
+.room-card,
+.device-card,
+.ota-item {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+}
+.kpi-card {
+  position: relative;
+  min-height: 130px;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 15px;
+}
+.kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.kpi-card strong {
+  display: block;
+  margin-top: 12px;
+  color: #e7efff;
+  font:
+    700 34px/1 Consolas,
+    monospace;
+}
+.kpi-card strong small {
+  color: var(--muted);
+  font-size: 17px;
+}
+.kpi-card span {
+  display: block;
+  margin-top: 8px;
+  color: var(--dim);
+  font-size: 11px;
+}
+.kpi-watermark {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  color: var(--accent);
+  opacity: 0.14;
+}

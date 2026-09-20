@@ -1,29 +1,44 @@
 <script setup lang="ts">
-import { Search } from '@lucide/vue'
+import { History } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useGatewayStore } from '@/stores/gateway'
+import LogHistoryDialog from '@/components/logs/LogHistoryDialog.vue'
+import type { Device, DeviceType } from '@/types/gateway'
 
 const store = useGatewayStore()
-const floor = ref('全部楼层')
+// 房间号搜索走文本输入（对齐 OTA 页的房间筛选），设备类型与级别是下拉。
+const roomSearch = ref('')
+const typeFilter = ref<DeviceType | 'all'>('all')
 const level = ref('全部级别')
-const search = ref('')
-const logs = computed(() =>
-  store.allLogs.filter(
-    (log) =>
-      (floor.value === '全部楼层' || log.floor === floor.value) &&
+// 打开「以往日志」弹窗的设备，为空时不渲染弹窗。
+const historyDevice = ref<Device | null>(null)
+
+// 表格一行代表一台设备，展示的始终是它最新的一条日志。
+const rows = computed(() =>
+  store.deviceLogs.filter(
+    ({ device, log }) =>
+      (typeFilter.value === 'all' || device.type === typeFilter.value) &&
       (level.value === '全部级别' || log.level === level.value) &&
-      (!search.value || log.message.includes(search.value) || log.room.includes(search.value)),
+      (!roomSearch.value || device.room.includes(roomSearch.value)),
   ),
 )
 </script>
 
 <template>
   <div class="toolbar">
+    <label>
+      房间号
+      <span class="search-box log-room-search">
+        <input v-model="roomSearch" placeholder="如 803" />
+      </span>
+    </label>
     <label
-      >楼层
-      <select v-model="floor">
-        <option>全部楼层</option>
-        <option v-for="item in store.floors" :key="item">{{ item }}</option>
+      >设备类型
+      <select v-model="typeFilter">
+        <option value="all">全部类型</option>
+        <option v-for="(meta, type) in store.deviceMeta" :key="type" :value="type">
+          {{ meta.label }}
+        </option>
       </select></label
     ><label
       >级别
@@ -34,10 +49,7 @@ const logs = computed(() =>
         <option>ERROR</option>
       </select></label
     >
-    <div class="search-box">
-      <Search :size="15" /><input v-model="search" placeholder="搜索日志描述" />
-    </div>
-    <b class="count-tag">共 {{ logs.length }} 条</b>
+    <b class="count-tag">共 {{ rows.length }} 台设备</b>
   </div>
   <div class="panel table-panel">
     <table>
@@ -48,19 +60,34 @@ const logs = computed(() =>
           <th>设备</th>
           <th>级别</th>
           <th>描述</th>
+          <th>历史日志</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(log, index) in logs" :key="`${log.room}-${log.time}-${index}`">
-          <td class="mono">{{ log.time }}</td>
-          <td>{{ log.room }}</td>
-          <td>{{ log.device }}</td>
+        <tr v-for="row in rows" :key="row.device.id">
+          <td class="mono">{{ row.log.time }}</td>
+          <td>{{ row.device.room }}</td>
+          <td>{{ row.device.name }}</td>
           <td>
-            <b class="level" :class="log.level">{{ log.level }}</b>
+            <b class="level" :class="row.log.level">{{ row.log.level }}</b>
           </td>
-          <td>{{ log.message }}</td>
+          <td>{{ row.log.message }}</td>
+          <td>
+            <button class="text-button" title="查看以往日志" @click="historyDevice = row.device">
+              <History :size="14" />查看以往日志
+            </button>
+          </td>
+        </tr>
+        <tr v-if="!rows.length">
+          <td colspan="6" class="empty-row">没有符合筛选条件的设备日志</td>
         </tr>
       </tbody>
     </table>
   </div>
+  <LogHistoryDialog
+    v-if="historyDevice"
+    :key="historyDevice.id"
+    :device="historyDevice"
+    @close="historyDevice = null"
+  />
 </template>

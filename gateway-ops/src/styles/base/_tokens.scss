@@ -1,0 +1,41 @@
+// 设计令牌（CSS 变量）、全局重置与排版基线。
+:root {
+  --bg: #070b14;
+  --bg-2: #0c1322;
+  --panel: #101a2e;
+  --border: #223150;
+  --border-strong: #2c3e63;
+  --text: #cdd8ee;
+  --muted: #7c8db0;
+  --dim: #54648a;
+  --accent: #2dd4ff;
+  --accent-2: #5b8cff;
+  --ok: #27d17f;
+  --warn: #f6b53d;
+  --err: #ff5d6c;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-size: 13px;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  border: 0;
+  color: inherit;
+}

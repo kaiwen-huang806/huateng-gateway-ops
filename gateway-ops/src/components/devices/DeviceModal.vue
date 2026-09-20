@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, Check, Upload, X } from '@lucide/vue'
+import { Check, CircleAlert, Upload, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { useGatewayStore } from '@/stores/gateway'
 import type { Device } from '@/types/gateway'
@@ -38,18 +38,41 @@ const controlMap: Record<Device['type'], ControlSpec[]> = {
     { key: 'temperature', label: '目标温度', kind: 'number', unit: '°C' },
     { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
   ],
-  curtain: [
-    { key: 'open', label: '开启比例', kind: 'range', min: 0, max: 100, unit: '%' },
-  ],
+  curtain: [{ key: 'open', label: '开启比例', kind: 'range', min: 0, max: 100, unit: '%' }],
   lock: [
     { key: 'locked', label: '门锁状态', kind: 'switch' },
     { key: 'remoteUnlock', label: '远程开锁', kind: 'action' },
   ],
+  nightlight: [
+    { key: 'power', label: '电源开关', kind: 'switch' },
+    { key: 'brightness', label: '亮度调节', kind: 'range', min: 0, max: 100, unit: '%' },
+    { key: 'colorTemp', label: '色温', kind: 'range', min: 2700, max: 6500, unit: 'K' },
+    { key: 'delay', label: '延时关闭', kind: 'number', unit: '分钟' },
+  ],
+  kettle: [
+    { key: 'power', label: '电源开关', kind: 'switch' },
+    { key: 'temperature', label: '目标水温', kind: 'number', unit: '°C' },
+    { key: 'keepWarm', label: '保温模式', kind: 'switch' },
+  ],
+  tv: [
+    { key: 'power', label: '电源开关', kind: 'switch' },
+    { key: 'volume', label: '音量', kind: 'range', min: 0, max: 100, unit: '%' },
+    {
+      key: 'source',
+      label: '信号源',
+      kind: 'select',
+      options: ['HDMI 1', 'HDMI 2', '投屏', '有线电视'],
+    },
+  ],
+  thermostat: [
+    { key: 'mode', label: '运行模式', kind: 'select', options: ['制冷', '制热', '送风', '自动'] },
+    { key: 'temperature', label: '目标温度', kind: 'number', unit: '°C' },
+    { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
+    { key: 'locked', label: '面板锁定', kind: 'switch' },
+  ],
 }
 
-const specs = computed(() =>
-  store.selectedDevice ? controlMap[store.selectedDevice.type] : [],
-)
+const specs = computed(() => (store.selectedDevice ? controlMap[store.selectedDevice.type] : []))
 
 function update(key: string, value: string | number | boolean) {
   if (!store.selectedDevice) return
@@ -108,7 +131,7 @@ function displayValue(value: string | number | boolean | undefined, spec: Contro
               >
             </div>
             <div><small>最近心跳</small><b>刚刚</b></div>
-              <div v-for="spec in specs" :key="spec.key">
+            <div v-for="spec in specs" :key="spec.key">
               <small>{{ spec.label }}</small
               ><b>{{ displayValue(store.selectedDevice.params[spec.key], spec) }}</b>
             </div>
@@ -157,7 +180,10 @@ function displayValue(value: string | number | boolean | undefined, spec: Contro
                 </select>
               </template>
               <template v-else>
-                <button class="primary-button" @click="store.notify(`${store.selectedDevice.name} 已执行远程开锁`)">
+                <button
+                  class="primary-button"
+                  @click="store.notify(`${store.selectedDevice.name} 已执行远程开锁`)"
+                >
                   <CircleAlert :size="14" /> 执行
                 </button>
               </template>
@@ -177,25 +203,63 @@ function displayValue(value: string | number | boolean | undefined, spec: Contro
         <template v-else>
           <div class="ota-modal-card">
             <div class="ota-version">
-              当前固件 <b>{{ store.selectedDevice.firmware }}</b
-              ><span>最新稳定版 v2.4.1</span>
+              当前固件 <b>{{ store.selectedDevice.firmware }}</b>
             </div>
-            <div v-if="store.selectedDevice.upgrading" class="progress-wrap">
+            <div v-if="store.otaBusy(store.selectedDevice)" class="progress-wrap">
               <i :style="{ width: `${store.selectedDevice.progress}%` }"></i
-              ><small>升级中… {{ store.selectedDevice.progress }}%</small>
+              ><small>{{ store.otaStageText(store.selectedDevice) }}</small>
             </div>
-            <button
-              class="primary-button"
-              :disabled="
-                !store.selectedDevice.online ||
-                store.selectedDevice.upgrading ||
-                store.selectedDevice.firmware === 'v2.4.1'
-              "
-              @click="store.startUpgrade(store.selectedDevice)"
-            >
-              <Upload :size="16" />
-              {{ store.selectedDevice.upgrading ? '升级进行中…' : '开始固件升级' }}
-            </button>
+            <div v-else-if="store.selectedDevice.otaStatus === 'failed'" class="ota-result failed">
+              <strong
+                ><CircleAlert :size="15" />升级失败 ·
+                {{ store.selectedDevice.otaError?.message }}</strong
+              >
+              <dl class="ota-meta">
+                <div>
+                  <dt>目标版本</dt>
+                  <dd>{{ store.selectedDevice.otaTarget ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt>错误码</dt>
+                  <dd>{{ store.selectedDevice.otaError?.code ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt>失败时间</dt>
+                  <dd>{{ store.selectedDevice.otaError?.at ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt>尝试次数</dt>
+                  <dd>{{ store.selectedDevice.otaAttempts }}</dd>
+                </div>
+              </dl>
+              <p>
+                设备可能仍停留在旧固件（当前
+                {{
+                  store.selectedDevice.firmware
+                }}）。确认设备在线后可直接重试，无需重新上传固件包。
+              </p>
+            </div>
+            <div v-else-if="store.selectedDevice.otaStatus === 'success'" class="ota-result ok">
+              <Check :size="15" />已升级至 {{ store.selectedDevice.firmware }} ·
+              {{ store.selectedDevice.otaUpdatedAt }}
+            </div>
+            <div class="ota-actions">
+              <button
+                class="primary-button"
+                :disabled="!store.selectedDevice.online || store.otaBusy(store.selectedDevice)"
+                @click="store.requestUpgrade(store.selectedDevice)"
+              >
+                <Upload :size="16" />
+                {{ store.otaBusy(store.selectedDevice) ? '升级进行中…' : '开始固件升级' }}
+              </button>
+              <button
+                v-if="store.selectedDevice.otaStatus === 'failed'"
+                class="ghost-button"
+                @click="store.retryUpgrade(store.selectedDevice)"
+              >
+                重试
+              </button>
+            </div>
           </div>
         </template>
       </div>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Activity, Bell, Building2, CircleAlert, Cpu, Gauge } from '@lucide/vue'
+import { useRouter } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
 import SectionHeading from '@/components/common/SectionHeading.vue'
 
+const router = useRouter()
 const store = useGatewayStore()
 const onlineRate = () => Math.round((store.onlineDevices / store.devices.length) * 100)
 </script>
@@ -21,7 +23,8 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
     <div class="kpi-card">
       <div class="kpi-label"><Cpu :size="16" /> 设备总数</div>
       <strong>{{ store.devices.length }}</strong
-      ><span>4 类智能设备</span><Cpu class="kpi-watermark" :size="36" />
+      ><span>{{ Object.keys(store.deviceMeta).length }} 类智能设备</span
+      ><Cpu class="kpi-watermark" :size="36" />
     </div>
     <div class="kpi-card">
       <div class="kpi-label"><Activity :size="16" /> 在线 / 离线</div>
@@ -45,7 +48,7 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
     title="楼层房间态势"
     :icon="Building2"
     action="点击房间进入设备视图"
-    @action="store.navigate('rooms')"
+    @action="router.push({ name: 'rooms' })"
   />
   <section class="floor-grid">
     <article v-for="floor in store.floors" :key="floor" class="panel floor-panel">
@@ -64,7 +67,7 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
           :key="room.id"
           class="room-status-cell"
           :class="store.statusOf(store.devices.find((device) => device.id === room.devices[0]))"
-          @click="store.openRoom(room)"
+          @click="router.push({ name: 'rooms', params: { roomId: room.id } })"
         >
           <b>{{ room.id }}</b
           ><i
@@ -98,11 +101,11 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
         title="最新告警"
         :icon="Bell"
         action="查看全部"
-        @action="store.navigate('logs')"
+        @action="router.push({ name: 'logs' })"
       />
       <div class="alert-list">
         <div
-          v-for="log in store.allLogs.slice(0, 5)"
+          v-for="log in store.alertLogs.slice(0, 5)"
           :key="`${log.room}-${log.time}-${log.message}`"
           class="alert-row"
         >
@@ -110,6 +113,7 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
           ><time>{{ log.time }}</time
           ><span>{{ log.room }} · {{ log.message }}</span>
         </div>
+        <div v-if="!store.alertLogs.length" class="alert-empty">暂无异常告警</div>
       </div>
     </div>
   </section>

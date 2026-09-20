@@ -1,0 +1,36 @@
+// 标签页与共享控件基底（tabs / 工具栏下拉 / 搜索框共用外观）。
+.tabs {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 23px;
+}
+.tabs button,
+.toolbar select,
+.search-box {
+  padding: 9px 17px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0e1830;
+  color: var(--muted);
+  cursor: pointer;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+.search-box input {
+  width: 150px;
+  padding: 8px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+}
+.tabs button.active,
+.tabs button:hover {
+  border-color: var(--border-strong);
+  background: linear-gradient(135deg, #15304a, #101c32);
+  color: #fff;
+}

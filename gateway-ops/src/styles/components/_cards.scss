@@ -1,0 +1,150 @@
+// 房间卡与设备卡：网格、悬浮态、徽标、返回按钮、面包屑、参数格。
+.room-card-grid,
+.device-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 15px;
+}
+.room-card,
+.device-card {
+  display: block;
+  width: 100%;
+  padding: 17px;
+  border-radius: 14px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s;
+}
+.room-card:hover,
+.device-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px #0005;
+}
+.room-card-top,
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.room-card-top strong {
+  display: block;
+  font:
+    700 20px Consolas,
+    monospace;
+}
+.room-card-top span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.badge {
+  height: max-content;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+}
+.badge.ok {
+  background: #0f2a1c;
+  color: var(--ok);
+}
+.badge.warn {
+  background: #332708;
+  color: var(--warn);
+}
+.badge.err {
+  background: #331019;
+  color: var(--err);
+}
+.room-card-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 23px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.room-card-stats b {
+  margin-left: 4px;
+  color: var(--text);
+  font:
+    600 14px Consolas,
+    monospace;
+}
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0e1830;
+  color: var(--muted);
+  cursor: pointer;
+}
+.breadcrumb {
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.breadcrumb b {
+  color: var(--text);
+}
+.device-card {
+  position: relative;
+}
+.device-state {
+  position: absolute;
+  top: 17px;
+  right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.device-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.device-card-head strong,
+.ota-info strong {
+  display: block;
+  font-size: 14px;
+}
+.device-card-head span,
+.ota-info span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.device-params {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 17px;
+}
+.device-params > div,
+.param-grid > div {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0c1526;
+}
+.device-params small,
+.param-grid small,
+.stats-grid small {
+  display: block;
+  color: var(--dim);
+  font-size: 10px;
+}
+.device-params b {
+  display: block;
+  margin-top: 4px;
+  font:
+    600 12px Consolas,
+    monospace;
+}

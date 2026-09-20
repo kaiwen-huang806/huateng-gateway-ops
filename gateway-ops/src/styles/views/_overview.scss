@@ -1,0 +1,148 @@
+// 概览页：楼层面板、房间状态格、类型分布、最新告警、级别徽标。
+.floor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 16px;
+}
+.panel {
+  padding: 18px;
+  border-radius: 15px;
+}
+.floor-panel {
+  min-height: 170px;
+}
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.panel-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.panel-heading small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.room-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.room-status-cell {
+  aspect-ratio: 1.18;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0e1830;
+  color: var(--text);
+  cursor: pointer;
+}
+.room-status-cell:hover {
+  border-color: var(--accent);
+  background: #11203a;
+}
+.room-status-cell b {
+  font:
+    600 13px Consolas,
+    monospace;
+}
+.overview-lower,
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+.settings-grid {
+  margin: 0 0 16px;
+  grid-template-columns: 1fr 1fr;
+}
+.distribution {
+  display: grid;
+  gap: 16px;
+}
+.distribution-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 30px;
+  align-items: center;
+  gap: 12px;
+}
+.distribution-row > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.distribution-row b {
+  font-family: Consolas, monospace;
+  text-align: right;
+}
+.distribution-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #0e1830;
+}
+.distribution-bar i,
+.progress-wrap i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.2s;
+}
+.alert-row {
+  display: grid;
+  grid-template-columns: 54px 115px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid #16223c;
+}
+.alert-row:last-child {
+  border-bottom: 0;
+}
+.alert-row time {
+  color: var(--muted);
+  font:
+    11px Consolas,
+    monospace;
+}
+.alert-row span {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-empty {
+  padding: 22px 0;
+  color: var(--dim);
+  font-size: 12px;
+  text-align: center;
+}
+.level {
+  display: inline-block;
+  width: max-content;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+.level.INFO {
+  background: #0e2a44;
+  color: var(--accent);
+}
+.level.WARN {
+  background: #332708;
+  color: var(--warn);
+}
+.level.ERROR {
+  background: #331019;
+  color: var(--err);
+}

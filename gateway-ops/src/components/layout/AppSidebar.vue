@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { BarChart3, Bell, Building2, FileText, Settings, ArrowUpCircle } from '@lucide/vue'
-import { useGatewayStore } from '@/stores/gateway'
+import { BarChart3, Building2, FileText, Settings, ArrowUpCircle } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { ViewKey } from '@/types/gateway'
 
-const store = useGatewayStore()
+const route = useRoute()
+const router = useRouter()
+// 品牌图标复用站点图标 public/favicon.ico（走 public 目录，不经打包器处理）。
+const brandLogo = '/favicon1.ico'
 defineProps<{ mobileMenuOpen: boolean }>()
 const emit = defineEmits<{ 'close-menu': [] }>()
 
 function selectView(key: ViewKey) {
-  store.navigate(key)
+  router.push({ name: key })
   emit('close-menu')
 }
 const items: { key: ViewKey; label: string; icon: typeof BarChart3 }[] = [
@@ -23,7 +26,7 @@ const items: { key: ViewKey; label: string; icon: typeof BarChart3 }[] = [
 <template>
   <aside class="sidebar" :class="{ open: mobileMenuOpen }">
     <div class="brand">
-      <div class="brand-logo"><Bell :size="22" /></div>
+      <div class="brand-logo"><img :src="brandLogo" alt="华腾智能" /></div>
       <div>
         <div class="brand-title">华腾智能</div>
         <div class="brand-subtitle">GATEWAY · OPS</div>
@@ -35,7 +38,7 @@ const items: { key: ViewKey; label: string; icon: typeof BarChart3 }[] = [
         v-for="item in items"
         :key="item.key"
         class="nav-item"
-        :class="{ active: store.currentView === item.key }"
+        :class="{ active: route.name === item.key }"
         @click="selectView(item.key)"
       >
         <component :is="item.icon" :size="18" /><span>{{ item.label }}</span>
