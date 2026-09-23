@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BarChart3, Building2, FileText, Settings, ArrowUpCircle } from '@lucide/vue'
+import { BarChart3, Building2, FileText, Settings, ArrowUpCircle, UsersRound } from '@lucide/vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { ViewKey } from '@/types/gateway'
 
@@ -19,6 +19,7 @@ const items: { key: ViewKey; label: string; icon: typeof BarChart3 }[] = [
   { key: 'rooms', label: '房间设备', icon: Building2 },
   { key: 'ota', label: 'OTA 升级中心', icon: ArrowUpCircle },
   { key: 'logs', label: '日志中心', icon: FileText },
+  { key: 'accounts', label: '账号管理中心', icon: UsersRound },
   { key: 'settings', label: '系统设置', icon: Settings },
 ]
 </script>

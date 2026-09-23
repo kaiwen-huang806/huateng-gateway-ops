@@ -3,12 +3,117 @@ import { ArrowLeft, Building2, Cpu } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
-import type { Room } from '@/types/gateway'
+import type { Device, Room } from '@/types/gateway'
 import SectionHeading from '@/components/common/SectionHeading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const store = useGatewayStore()
+
+type DeviceCardParam = {
+  label: string
+  value: string
+}
+
+const switchDeviceTypes = new Set<Device['type']>([
+  'switch-1k',
+  'switch-2k',
+  'switch-3k',
+  'switch-4k',
+  'switch-6k',
+])
+
+function textParam(value: Device['params'][string], fallback = '--') {
+  return value === undefined ? fallback : String(value)
+}
+
+function numberParam(value: Device['params'][string], unit = '') {
+  return typeof value === 'number' ? `${value}${unit}` : textParam(value)
+}
+
+function booleanParam(value: Device['params'][string], enabled: string, disabled: string) {
+  return value ? enabled : disabled
+}
+
+function powerParam(value: Device['params'][string]) {
+  return booleanParam(value, '已开启', '已关闭')
+}
+
+function deviceCardParams(device: Device): DeviceCardParam[] {
+  const { params, type } = device
+
+  if (switchDeviceTypes.has(type)) {
+    return [{ label: '开关状态', value: powerParam(params.power) }]
+  }
+
+  switch (type) {
+    case 'lock':
+      return [{ label: '门锁状态', value: booleanParam(params.locked, '已上锁', '未上锁') }]
+    case 'card-power':
+      return [{ label: '插卡状态', value: booleanParam(params.inserted, '已插卡', '未插卡') }]
+    case 'thermostat':
+      return [
+        { label: '运行模式', value: textParam(params.mode) },
+        { label: '目标温度', value: numberParam(params.temperature, '°C') },
+        { label: '风速', value: textParam(params.fan) },
+        { label: '面板锁定', value: booleanParam(params.locked, '已锁定', '未锁定') },
+      ]
+    case 'remote-ac':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '运行模式', value: textParam(params.mode) },
+        { label: '目标温度', value: numberParam(params.temperature, '°C') },
+        { label: '风速', value: textParam(params.fan) },
+      ]
+    case 'remote-tv':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '音量', value: numberParam(params.volume) },
+        { label: '信号源', value: textParam(params.source) },
+      ]
+    case 'curtain':
+    case 'sheer-curtain':
+      return [{ label: '开启比例', value: numberParam(params.open, '%') }]
+    case 'smart-socket':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '实时电流', value: numberParam(params.current, 'A') },
+      ]
+    case 'pir':
+      return [
+        { label: '红外触发', value: booleanParam(params.detected, '已触发', '未触发') },
+        { label: '灵敏度', value: numberParam(params.sensitivity, '%') },
+      ]
+    case 'presence':
+      return [
+        { label: '存在状态', value: booleanParam(params.present, '有人', '无人') },
+        { label: '检测置信度', value: numberParam(params.confidence, '%') },
+      ]
+    case 'relay':
+      return [{ label: '通断状态', value: powerParam(params.power) }]
+    case 'dimmer-2way':
+    case 'dimmer-4way':
+    case 'dimmer-mirror':
+    case 'light-driver':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '亮度', value: numberParam(params.brightness, '%') },
+      ]
+    case 'kettle':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '目标水温', value: numberParam(params.temperature, '°C') },
+        { label: '保温模式', value: booleanParam(params.keepWarm, '开启', '关闭') },
+      ]
+    case 'hairdryer':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '风速档位', value: numberParam(params.level, ' 档') },
+      ]
+  }
+
+  return []
+}
 
 // 当前房间由路由参数决定，刷新 /rooms/803 时会直接回到该房间的设备清单。
 const selectedRoom = computed(() => {
@@ -126,15 +231,14 @@ function backToList() {
             <component :is="store.deviceMeta[device.type].icon" :size="21" />
           </div>
           <div>
-            <strong>{{ device.name }}</strong
-            ><span>{{ store.deviceMeta[device.type].label }}</span>
+            <strong>{{ device.name }}</strong>
           </div>
         </div>
         <div class="device-params">
-          <div>
-            <small>固件版本</small><b>{{ device.firmware }}</b>
+          <div v-for="param in deviceCardParams(device)" :key="param.label">
+            <small>{{ param.label }}</small
+            ><b>{{ param.value }}</b>
           </div>
-          <div><small>最近心跳</small><b>刚刚</b></div>
         </div>
       </button>
     </section>

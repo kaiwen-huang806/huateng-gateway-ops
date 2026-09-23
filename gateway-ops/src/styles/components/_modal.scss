@@ -163,6 +163,15 @@
   color: var(--dim);
   font-size: 11px;
 }
+.log-console-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .log-console {
   padding: 14px;
   border: 1px solid var(--border);
@@ -172,12 +181,24 @@
     12px/2 Consolas,
     monospace;
 }
-.log-console div {
-  display: flex;
+.log-console-head,
+.log-console-row {
+  display: grid;
+  grid-template-columns: 124px 52px 150px minmax(0, 1fr);
   gap: 12px;
+  align-items: start;
+}
+.log-console-head {
+  color: var(--dim);
+  font-size: 11px;
+}
+.log-console-row span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .log-console time {
   color: var(--dim);
+  white-space: nowrap;
 }
 .log-console b {
   width: 45px;

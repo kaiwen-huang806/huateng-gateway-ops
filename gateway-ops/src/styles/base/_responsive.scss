@@ -4,7 +4,7 @@
     grid-template-columns: repeat(3, 1fr);
   }
   .floor-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
   .topbar-status {
     gap: 13px;
@@ -41,6 +41,13 @@
   .overview-lower,
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+  .floor-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .floor-panel .panel-heading {
+    margin: 0;
   }
   .section-heading h2 {
     font-size: 14px;

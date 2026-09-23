@@ -50,6 +50,12 @@ const router = createRouter({
       meta: { title: '日志中心', subtitle: '每台设备最新日志 · 可按日期回溯历史' },
     },
     {
+      path: '/accounts',
+      name: 'accounts',
+      component: () => import('@/views/AccountsView.vue'),
+      meta: { title: '账号管理中心', subtitle: '维护账号、权限范围与访问状态' },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),

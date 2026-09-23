@@ -1,9 +1,42 @@
 import type { Component } from 'vue'
 
-export type ViewKey = 'overview' | 'rooms' | 'ota' | 'logs' | 'settings'
-// 客房设备类型：前四种是基础设备，后四种是本轮新增的（夜灯 / 热水壶 / 电视 / 温控面板）。
+export type ViewKey = 'overview' | 'rooms' | 'ota' | 'logs' | 'accounts' | 'settings'
+export type AccountPermission = 'after-sales' | 'research' | 'engineering' | 'management'
+export type AccountStatus = 'enabled' | 'disabled'
+
+export interface Account {
+  id: string
+  name: string
+  password: string
+  hotelCode: string
+  permission: AccountPermission
+  status: AccountStatus
+  createdAt: string
+}
+// 客房设备类型：按酒店客房实际部署拆分，每个型号/用途都可以独立筛选、控制和升级。
 export type DeviceType =
-  'light' | 'ac' | 'curtain' | 'lock' | 'nightlight' | 'kettle' | 'tv' | 'thermostat'
+  | 'lock'
+  | 'card-power'
+  | 'switch-1k'
+  | 'switch-2k'
+  | 'switch-3k'
+  | 'switch-4k'
+  | 'switch-6k'
+  | 'thermostat'
+  | 'remote-ac'
+  | 'remote-tv'
+  | 'curtain'
+  | 'sheer-curtain'
+  | 'smart-socket'
+  | 'pir'
+  | 'presence'
+  | 'relay'
+  | 'dimmer-2way'
+  | 'dimmer-4way'
+  | 'dimmer-mirror'
+  | 'kettle'
+  | 'hairdryer'
+  | 'light-driver'
 export type DeviceStatus = 'ok' | 'warn' | 'err'
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR'
 // 动作来源：这条日志由谁触发（客人按键 / 传感器采样 / 平台下发 / 本地联动 …）。
@@ -65,6 +98,10 @@ export interface DeviceLogRow {
   log: DeviceLog
 }
 
+// 房间经营状态由酒店系统/网关上报，概览页只负责展示。
+export type RoomStatus =
+  'occupied' | 'cleaning' | 'do-not-disturb' | 'vacant' | 'unoccupied' | 'fault'
+
 export interface Device {
   id: string
   room: string
@@ -90,6 +127,8 @@ export interface Room {
   id: string
   floor: string
   category: string
+  gatewayOnline: boolean
+  status: RoomStatus
   devices: string[]
 }
 

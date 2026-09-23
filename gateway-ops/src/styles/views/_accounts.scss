@@ -1,0 +1,308 @@
+.accounts-view {
+  display: grid;
+  gap: 18px;
+}
+
+.account-toolbar {
+  margin: 0;
+  padding: 0;
+}
+
+.account-toolbar .account-search {
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #0e1830;
+  color: var(--muted);
+}
+
+.account-toolbar .account-search input {
+  width: 170px;
+  padding: 8px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.account-toolbar .account-search input::placeholder {
+  color: var(--muted);
+}
+
+.account-actions-toolbar {
+  margin-top: -8px;
+  margin-bottom: 0;
+}
+
+.account-actions-toolbar .bulk-active {
+  box-shadow: 0 0 0 2px #2dd4ff22;
+}
+
+.bulk-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.account-table-panel {
+  overflow: hidden;
+}
+
+.account-table-scroll {
+  overflow-x: auto;
+}
+
+.account-table-scroll table {
+  min-width: 860px;
+}
+
+.account-table-scroll th,
+.account-table-scroll td {
+  padding: 15px 18px;
+}
+
+.account-table-scroll th:first-child,
+.account-table-scroll td:first-child {
+  padding-left: 20px;
+}
+
+.selection-cell {
+  width: 44px;
+  padding-right: 4px !important;
+  padding-left: 20px !important;
+  text-align: center;
+}
+
+.selection-cell input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-2);
+  cursor: pointer;
+}
+
+.account-id {
+  color: var(--accent);
+}
+
+.current-account-row {
+  background: #162a4526;
+}
+
+.account-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-avatar {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #13243c;
+  color: var(--accent);
+}
+
+.account-name strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.permission-badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  justify-content: center;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #0e1830;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.permission-badge.after-sales {
+  border-color: #29547a;
+  color: var(--accent);
+}
+
+.permission-badge.research {
+  border-color: #3b3e75;
+  color: #a7a8ff;
+}
+
+.permission-badge.engineering {
+  border-color: #5c451e;
+  color: var(--warn);
+}
+
+.permission-badge.management {
+  border-color: #1c5a3e;
+  color: var(--ok);
+}
+
+.status-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.status-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.status-switch i {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  display: block;
+  border-radius: 10px;
+  background: #28324a;
+  transition: 0.18s;
+}
+
+.status-switch i::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #aab5cc;
+  transition: 0.18s;
+}
+
+.status-switch.on {
+  color: var(--ok);
+}
+
+.status-switch.on i {
+  background: var(--ok);
+}
+
+.status-switch.on i::after {
+  left: 17px;
+  background: #fff;
+}
+
+.muted-cell {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.table-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.table-actions .text-button {
+  color: var(--accent-2);
+}
+
+.table-actions .danger-action {
+  color: var(--err);
+}
+
+.account-dialog {
+  width: min(480px, 100%);
+}
+
+.account-form {
+  gap: 15px;
+}
+
+.account-form label {
+  display: grid;
+  grid-template-columns: 75px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-form label > span {
+  color: var(--muted);
+}
+
+.account-form input,
+.account-form select {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: 0;
+  background: #0e1830;
+  color: var(--text);
+}
+
+.account-form input:focus,
+.account-form select:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 2px #5b8cff22;
+}
+
+.account-form input:disabled,
+.account-form select:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.account-self-note {
+  margin: -3px 0 0 87px;
+  color: var(--warn);
+  font-size: 11px;
+}
+
+.danger-icon {
+  border-color: #5a1d27;
+  color: var(--err);
+}
+
+.bulk-delete-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 110px;
+  overflow: auto;
+}
+
+.bulk-delete-list span {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #0e1830;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 520px) {
+  .account-toolbar {
+    align-items: stretch;
+  }
+
+  .account-toolbar label,
+  .account-toolbar .account-search,
+  .account-toolbar select {
+    width: 100%;
+  }
+
+  .account-toolbar .account-search input {
+    flex: 1;
+    width: auto;
+  }
+
+  .account-form label {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

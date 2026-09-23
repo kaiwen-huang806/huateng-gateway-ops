@@ -200,7 +200,6 @@ const singleUpgradeBlocked = (device: Device) =>
         <option value="timeout">超时失联</option>
         <option value="batch-partial">批次内每 5 台失败 3 台</option>
       </select>
-      <small v-if="store.otaFault !== 'none'" class="dev-badge">演示中</small>
     </div>
     <div v-if="batchMode" class="batch-actions push-right">
       <span class="count-tag">已选 {{ selectedDevices.length }} 台</span>

@@ -1,16 +1,19 @@
 // 登录态的唯一来源：守卫、登录页、顶栏退出都只从这里读写，避免各处各存一份。
 //
-// 现在跑的是演示用的假登录（见 DEMO_ACCOUNT / DEMO_PASSWORD）。接网关时只要把
+// 现在跑的是演示用的假登录（见账号管理中心的演示数据）。接网关时只要把
 // authenticate() 换成 POST /api/auth/login，其余代码都不用动：
 // 守卫仍然问「有没有会话」，登录页仍然问「这次认证成没成功」。
 //
 // 为什么用 localStorage 而不是 sessionStorage：运维端在网管电脑上通常是常驻标签页，
 // 刷新、关标签后重开都不应该被踢回登录页。
+import { findAccount } from '@/mock/accounts'
+
 const SESSION_KEY = 'huateng.ops.session'
 
 // 演示账号（假数据，仅用于本地演示）。
 export const DEMO_ACCOUNT = 'admin'
-export const DEMO_PASSWORD = 'admin123'
+export const DEMO_PASSWORD = '12345'
+export const DEMO_HOTEL_CODE = '1111111'
 
 export interface LoginSession {
   account: string
@@ -53,12 +56,19 @@ export function currentAccount() {
   return readSession()?.account ?? ''
 }
 
-// 假登录：只认这一组演示账号。成功返回 true 并落库会话，失败返回 false 由页面提示。
+// 假登录：账号、密码、酒店编码三项必须同时匹配，且账号必须处于启用状态。
 // 接网关后这里改成：拿到 200 再写入会话，401 返回 false，网络异常抛出去单独提示
-//（「账号或密码错误」和「网关不可达」必须分开，现场排查时才不会被误导）。
-export function authenticate(account: string, password: string) {
+//（「认证信息错误」和「网关不可达」必须分开，现场排查时才不会被误导）。
+export function authenticate(account: string, password: string, hotelCode: string) {
   const name = account.trim()
-  if (name !== DEMO_ACCOUNT || password !== DEMO_PASSWORD) return false
+  const code = hotelCode.trim()
+  const matched = findAccount(name)
+  if (!matched || matched.status !== 'enabled' || matched.password !== password) {
+    return false
+  }
+  if (!/^\d{7}$/.test(code) || matched.hotelCode !== code) {
+    return false
+  }
 
   const session: LoginSession = { account: name, loginAt: new Date().toISOString() }
   memorySession = session
