@@ -92,12 +92,18 @@ function confirmLogout() {
   <section class="panel">
     <SectionHeading title="接入统计" :icon="Activity" />
     <div class="stats-grid">
-      <div><small>接入楼层</small><b>5</b></div>
-      <div><small>房间总数</small><b>28</b></div>
+      <div>
+        <small>接入楼层</small><b>{{ store.floors.length }}</b>
+      </div>
+      <div>
+        <small>房间总数</small><b>{{ store.rooms.length }}</b>
+      </div>
       <div>
         <small>设备总数</small><b>{{ store.devices.length }}</b>
       </div>
-      <div><small>设备类型</small><b>4</b></div>
+      <div>
+        <small>设备类型</small><b>{{ Object.keys(store.deviceMeta).length }}</b>
+      </div>
     </div>
   </section>
 

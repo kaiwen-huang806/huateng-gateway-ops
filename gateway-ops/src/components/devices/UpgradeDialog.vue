@@ -141,7 +141,7 @@ function confirm() {
           >
         </label>
         <p class="confirm-warning">
-          <CircleAlert :size="14" />切勿上传错误固件，否则所有设备将变砖！
+          <CircleAlert :size="14" />切勿上传错误固件！
         </p>
       </div>
       <footer class="confirm-footer">

@@ -4,9 +4,10 @@ import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import type { Device, DeviceLog, LogSource } from '@/types/gateway'
 import {
-  LOG_DATE_FORMAT,
+  LOG_MINUTE_FORMAT,
+  LOG_MINUTE_TEXT_FORMAT,
   logAtText,
-  logDate,
+  logMinute,
   logSourceText,
   logSourcesOf,
   logsInDateRange,
@@ -18,8 +19,8 @@ const emit = defineEmits<{ close: [] }>()
 
 const today = dayjs()
 // 默认查最近 7 天（含今天）：现场排障最常用的区间，打开弹窗就有数据。
-const from = ref(today.subtract(6, 'day').format(LOG_DATE_FORMAT))
-const to = ref(today.format(LOG_DATE_FORMAT))
+const from = ref(today.subtract(6, 'day').startOf('day').format(LOG_MINUTE_FORMAT))
+const to = ref(today.startOf('minute').format(LOG_MINUTE_FORMAT))
 // 动作来源筛选与日期筛选叠加生效；选项只取这台设备日志里出现过的来源。
 const sourceFilter = ref<LogSource | 'all'>('all')
 
@@ -27,21 +28,21 @@ const sourceFilter = ref<LogSource | 'all'>('all')
 // 弹窗一打开就有可选项，也不会出现「选了却查不到结果」的空选项。
 const sourceOptions = computed(() => logSourcesOf(props.device.logs))
 
-// 该设备日志覆盖的日期范围（最早 ~ 最新）。单台设备的历史里「不限」就等于这个范围，
+// 该设备日志覆盖的分钟范围（最早 ~ 最新）。单台设备的历史里「不限」就等于这个范围，
 // 所以两个起止框一律用它兜底：点「全部」或清除单侧后落回具体日期，不会露出浏览器
-// 原生的 yyyy/mm/dd 空占位。设备没有日志时退回今天。
+// 原生的日期时间空占位。设备没有日志时退回当前分钟。
 const fullRange = computed(() => {
   const history = sortLogsDesc(props.device.logs)
-  const fallback = today.format(LOG_DATE_FORMAT)
-  const boundary = (log: DeviceLog | undefined) => (log ? logDate(log) || fallback : fallback)
+  const fallback = today.startOf('minute').format(LOG_MINUTE_FORMAT)
+  const boundary = (log: DeviceLog | undefined) => (log ? logMinute(log) || fallback : fallback)
   return { from: boundary(history[history.length - 1]), to: boundary(history[0]) }
 })
 
-// 起止日期都是闭区间，改动即刷新结果，不需要再点一次「查询」。
+// 起止时间都是按分钟闭区间，改动即刷新结果，不需要再点一次「查询」。
 // 处理函数直接收元素：清空后回落边界时若新值与上一次相同，Vue 不会重渲染，
-// 得把真实值写回元素，否则输入框会停在空占位（浏览器原生的 yyyy/mm/dd）。
+// 得把真实值写回元素，否则输入框会停在空占位（浏览器原生的日期时间占位）。
 function setFrom(input: HTMLInputElement) {
-  // 清空起点 = 放开起点，落回最早有记录的那天。
+  // 清空起点 = 放开起点，落回最早有记录的分钟。
   from.value = input.value || fullRange.value.from
   // 起点晚于终点会把结果筛成空，直接顺着用户的选择把终点一并推后。
   if (to.value && to.value < from.value) to.value = from.value
@@ -49,18 +50,18 @@ function setFrom(input: HTMLInputElement) {
 }
 
 function setTo(input: HTMLInputElement) {
-  // 清空终点 = 放开终点，落回最新有记录的那天。
+  // 清空终点 = 放开终点，落回最新有记录的分钟。
   to.value = input.value || fullRange.value.to
   if (from.value && from.value > to.value) from.value = to.value
   input.value = to.value
 }
 
 function preset(days: number) {
-  from.value = today.subtract(days - 1, 'day').format(LOG_DATE_FORMAT)
-  to.value = today.format(LOG_DATE_FORMAT)
+  from.value = today.subtract(days - 1, 'day').startOf('day').format(LOG_MINUTE_FORMAT)
+  to.value = today.startOf('minute').format(LOG_MINUTE_FORMAT)
 }
 
-// 「全部」= 该设备记录的最早 ~ 最新：起止框始终是具体日期，摘要也照实显示区间。
+// 「全部」= 该设备记录的最早 ~ 最新：起止框始终是具体分钟，摘要也照实显示区间。
 function reset() {
   from.value = fullRange.value.from
   to.value = fullRange.value.to
@@ -73,10 +74,16 @@ const logs = computed(() =>
   ),
 )
 
-// 设备全部日志覆盖的日期范围，空结果显示时用来提示「什么时候才有数据」。
+// 设备全部日志覆盖的分钟范围，空结果显示时用来提示「什么时候才有数据」。
 const historyRange = computed(() =>
-  props.device.logs.length ? `${fullRange.value.from} ~ ${fullRange.value.to}` : '',
+  props.device.logs.length
+    ? `${formatMinuteText(fullRange.value.from)} ~ ${formatMinuteText(fullRange.value.to)}`
+    : '',
 )
+
+function formatMinuteText(value: string) {
+  return value ? dayjs(value).format(LOG_MINUTE_TEXT_FORMAT) : value
+}
 </script>
 
 <template>
@@ -89,7 +96,7 @@ const historyRange = computed(() =>
         <div>
           <h2>{{ device.room }} · {{ device.name }} · 以往日志</h2>
           <p>
-            ID {{ device.id }} · 共 {{ device.logs.length }} 条记录 · 按日期查询，起止当天都包含
+            ID {{ device.id }} · 共 {{ device.logs.length }} 条记录 · 按分钟查询，起止分钟都包含
           </p>
         </div>
         <button class="icon-button" title="关闭" @click="emit('close')">
@@ -100,19 +107,19 @@ const historyRange = computed(() =>
       <div class="modal-body">
         <div class="log-filter">
           <label class="date-field">
-            <span>开始日期</span>
+            <span>开始时间</span>
             <input
               :value="from"
-              type="date"
+              type="datetime-local"
               :max="to || undefined"
               @change="setFrom($event.target as HTMLInputElement)"
             />
           </label>
           <label class="date-field">
-            <span>结束日期</span>
+            <span>结束时间</span>
             <input
               :value="to"
-              type="date"
+              type="datetime-local"
               :min="from || undefined"
               @change="setTo($event.target as HTMLInputElement)"
             />
@@ -137,9 +144,12 @@ const historyRange = computed(() =>
         <div class="log-history-summary">
           <CalendarRange :size="14" />
           <span v-if="from === fullRange.from && to === fullRange.to"
-            >全部时间范围（{{ from }} ~ {{ to }}）共 {{ logs.length }} 条</span
+            >全部时间范围（{{ formatMinuteText(from) }} ~ {{ formatMinuteText(to) }}）共
+            {{ logs.length }} 条</span
           >
-          <span v-else>{{ from }} ~ {{ to }} 共 {{ logs.length }} 条</span>
+          <span v-else
+            >{{ formatMinuteText(from) }} ~ {{ formatMinuteText(to) }} 共 {{ logs.length }} 条</span
+          >
         </div>
 
         <div class="log-history-table">
@@ -164,7 +174,7 @@ const historyRange = computed(() =>
             </tbody>
           </table>
           <p v-if="!logs.length" class="log-history-empty">
-            所选日期范围内没有日志记录<span v-if="sourceFilter !== 'all'"
+            所选时间范围内没有日志记录<span v-if="sourceFilter !== 'all'"
               >（当前动作来源下没有记录）</span
             ><span v-if="historyRange">；该设备现有记录：{{ historyRange }}</span>
           </p>

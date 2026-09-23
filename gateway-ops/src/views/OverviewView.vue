@@ -1,23 +1,63 @@
 <script setup lang="ts">
-import { Activity, Bell, Building2, CircleAlert, Cpu, Gauge } from '@lucide/vue'
+import { Activity, Bell, Building2, CircleAlert, Cpu, Gauge, Wifi, WifiOff } from '@lucide/vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
 import SectionHeading from '@/components/common/SectionHeading.vue'
+import type { RoomStatus } from '@/types/gateway'
 
 const router = useRouter()
 const store = useGatewayStore()
-const onlineRate = () => Math.round((store.onlineDevices / store.devices.length) * 100)
+const onlineRate = computed(() =>
+  store.devices.length ? Math.round((store.onlineDevices / store.devices.length) * 100) : 0,
+)
+const roomCategories = computed(() =>
+  [...new Set(store.rooms.map((room) => room.category))].join(' / '),
+)
+const roomStatusMeta: Record<RoomStatus, { label: string; className: string }> = {
+  occupied: { label: '入住', className: 'occupied' },
+  cleaning: { label: '清理', className: 'cleaning' },
+  'do-not-disturb': { label: '勿扰', className: 'do-not-disturb' },
+  vacant: { label: '空房', className: 'vacant' },
+  unoccupied: { label: '未入住', className: 'unoccupied' },
+  fault: { label: '故障房', className: 'fault' },
+}
+const floorSummaries = computed(() =>
+  store.floors.map((floor) => {
+    const rooms = store.rooms.filter((room) => room.floor === floor)
+    const devices = store.devices.filter((device) => device.floor === floor)
+
+    return {
+      floor,
+      category: rooms[0]?.category ?? '未分类',
+      rooms,
+      onlineDevices: devices.filter((device) => device.online).length,
+      deviceCount: devices.length,
+    }
+  }),
+)
+
+function roomStatus(roomId: string) {
+  const room = store.rooms.find((item) => item.id === roomId)
+  return store.statusOf(store.devices.find((device) => device.id === room?.devices[0]))
+}
+
+function roomStatusMetaOf(status: RoomStatus) {
+  return roomStatusMeta[status]
+}
 </script>
 
 <template>
   <section class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-label"><Building2 :size="16" /> 接入楼层</div>
-      <strong>5</strong><span>客房楼层全覆盖</span><Building2 class="kpi-watermark" :size="36" />
+      <strong>{{ store.floors.length }}</strong
+      ><span>客房楼层全覆盖</span><Building2 class="kpi-watermark" :size="36" />
     </div>
     <div class="kpi-card">
       <div class="kpi-label"><Building2 :size="16" /> 房间总数</div>
-      <strong>28</strong><span>标准 / 商务 / 行政 / 套房</span
+      <strong>{{ store.rooms.length }}</strong
+      ><span>{{ roomCategories || '暂无房型' }}</span
       ><Building2 class="kpi-watermark" :size="36" />
     </div>
     <div class="kpi-card">
@@ -31,7 +71,7 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
       <strong class="success-text"
         >{{ store.onlineDevices }}
         <small>/ {{ store.devices.length - store.onlineDevices }}</small></strong
-      ><span>在线率 {{ onlineRate() }}%</span><Gauge class="kpi-watermark" :size="36" />
+      ><span>在线率 {{ onlineRate }}%</span><Gauge class="kpi-watermark" :size="36" />
     </div>
     <div class="kpi-card">
       <div class="kpi-label"><CircleAlert :size="16" /> 异常 / 注意</div>
@@ -51,29 +91,40 @@ const onlineRate = () => Math.round((store.onlineDevices / store.devices.length)
     @action="router.push({ name: 'rooms' })"
   />
   <section class="floor-grid">
-    <article v-for="floor in store.floors" :key="floor" class="panel floor-panel">
+    <article v-for="summary in floorSummaries" :key="summary.floor" class="panel floor-panel">
       <div class="panel-heading">
-        <h3>{{ floor }} {{ store.rooms.find((room) => room.floor === floor)?.category }}</h3>
+        <h3>{{ summary.floor }} {{ summary.category }}</h3>
         <small
-          >{{ store.rooms.filter((room) => room.floor === floor).length }} 间 · 在线
-          {{ store.devices.filter((device) => device.floor === floor && device.online).length }}/{{
-            store.devices.filter((device) => device.floor === floor).length
+          >{{ summary.rooms.length }} 间 · 在线 {{ summary.onlineDevices }}/{{
+            summary.deviceCount
           }}</small
         >
       </div>
       <div class="room-status-grid">
         <button
-          v-for="room in store.rooms.filter((room) => room.floor === floor)"
+          v-for="room in summary.rooms"
           :key="room.id"
           class="room-status-cell"
-          :class="store.statusOf(store.devices.find((device) => device.id === room.devices[0]))"
+          :class="roomStatus(room.id)"
+          :aria-label="`${room.id} ${roomStatusMetaOf(room.status).label}，网关${room.gatewayOnline ? '在线' : '离线'}`"
           @click="router.push({ name: 'rooms', params: { roomId: room.id } })"
         >
-          <b>{{ room.id }}</b
-          ><i
-            class="status-dot"
-            :class="store.statusOf(store.devices.find((device) => device.id === room.devices[0]))"
-          ></i>
+          <div class="room-status-head">
+            <b>{{ room.id }}</b>
+            <component
+              :is="room.gatewayOnline ? Wifi : WifiOff"
+              class="gateway-icon"
+              :class="room.gatewayOnline ? 'online' : 'offline'"
+              :size="14"
+              :title="room.gatewayOnline ? '网关在线' : '网关离线'"
+            />
+          </div>
+          <span
+            class="room-state"
+            :class="roomStatusMetaOf(room.status).className"
+            :title="roomStatusMetaOf(room.status).label"
+            >{{ roomStatusMetaOf(room.status).label }}</span
+          >
         </button>
       </div>
     </article>

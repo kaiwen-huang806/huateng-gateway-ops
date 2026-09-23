@@ -18,6 +18,7 @@
 @use './components/toolbar';
 @use './views/ota';
 @use './views/logs';
+@use './views/accounts';
 @use './views/settings';
 // 登录页是整屏浅色页面，类名统一带 login- / lx- 前缀，不会与上面的深色页面互相覆盖。
 @use './views/login';

@@ -8,14 +8,21 @@ import router from '../router'
 import App from '../App.vue'
 import type { ViewKey } from '../types/gateway'
 import { useGatewayStore } from '../stores/gateway'
-import { latestLogOf, logSourceText, logSourcesOf, logsInDateRange } from '../utils/logs'
-import { DEMO_ACCOUNT, DEMO_PASSWORD, authenticate } from '../utils/auth'
+import {
+  latestLogOf,
+  logDate,
+  logSourceText,
+  logSourcesOf,
+  logsInDateRange,
+  sortLogsDesc,
+} from '../utils/logs'
+import { DEMO_ACCOUNT, DEMO_HOTEL_CODE, DEMO_PASSWORD, authenticate } from '../utils/auth'
 
 const viewKeys: ViewKey[] = ['overview', 'rooms', 'ota', 'logs', 'settings']
 
 // 业务页现在挂在登录守卫后面，这些用例只关心运维台自身，统一先「登录」再跑。
 beforeEach(() => {
-  authenticate(DEMO_ACCOUNT, DEMO_PASSWORD)
+  authenticate(DEMO_ACCOUNT, DEMO_PASSWORD, DEMO_HOTEL_CODE)
 })
 
 describe('App', () => {
@@ -58,6 +65,49 @@ describe('App', () => {
     })
   })
 
+  it('renders one data-driven floor row with all of its rooms', async () => {
+    await router.push('/overview')
+    await router.isReady()
+    const pinia = createPinia()
+    const wrapper = mount(App, {
+      global: {
+        plugins: [pinia, router],
+      },
+    })
+    const store = useGatewayStore(pinia)
+
+    expect(wrapper.find('.kpi-grid').text()).toContain(`接入楼层${store.floors.length}`)
+    expect(wrapper.find('.kpi-grid').text()).toContain(`房间总数${store.rooms.length}`)
+
+    const floorRows = wrapper.findAll('.floor-panel')
+    expect(floorRows).toHaveLength(store.floors.length)
+    floorRows.forEach((row, index) => {
+      const floor = store.floors[index]!
+      const rooms = store.rooms.filter((room) => room.floor === floor)
+      expect(row.find('h3').text()).toContain(floor)
+      expect(row.findAll('.room-status-cell')).toHaveLength(rooms.length)
+      expect(row.text()).toContain(`${rooms.length} 间`)
+      rooms.forEach((room) => {
+        const roomCell = row
+          .findAll('.room-status-cell')
+          .find((cell) => cell.text().includes(room.id))
+        expect(roomCell?.attributes('aria-label')).toContain(
+          room.gatewayOnline ? '网关在线' : '网关离线',
+        )
+        expect(roomCell?.text()).toContain(
+          {
+            occupied: '入住',
+            cleaning: '清理',
+            'do-not-disturb': '勿扰',
+            vacant: '空房',
+            unoccupied: '未入住',
+            fault: '故障房',
+          }[room.status],
+        )
+      })
+    })
+  })
+
   it('registers a named route for every view key', () => {
     for (const key of viewKeys) {
       expect(router.resolve({ name: key }).name).toBe(key)
@@ -82,7 +132,7 @@ describe('App', () => {
     expect(useGatewayStore(pinia).selectedFloor).toBe('8F')
   })
 
-  it('gives every room the four new device types, each with its own controls', async () => {
+  it('gives every room the configured hotel device types, each with its own controls', async () => {
     await router.push('/rooms/301')
     await router.isReady()
     const pinia = createPinia()
@@ -93,40 +143,54 @@ describe('App', () => {
     })
     const store = useGatewayStore(pinia)
 
-    // 每间客房都是同一套 8 类设备，新增的四种追加在原有四种之后（老设备 id 不变）。
+    // 每间客房都是同一套 22 类设备，重复用途也按独立设备拆分。
     const room = store.rooms.find((item) => item.id === '301')!
     expect(room.devices).toEqual([
-      '301-light',
-      '301-ac',
-      '301-curtain',
       '301-lock',
-      '301-nightlight',
-      '301-kettle',
-      '301-tv',
+      '301-card-power',
+      '301-switch-1k',
+      '301-switch-2k',
+      '301-switch-3k',
+      '301-switch-4k',
+      '301-switch-6k',
       '301-thermostat',
+      '301-remote-ac',
+      '301-remote-tv',
+      '301-curtain',
+      '301-sheer-curtain',
+      '301-smart-socket',
+      '301-pir',
+      '301-presence',
+      '301-relay',
+      '301-dimmer-2way',
+      '301-dimmer-4way',
+      '301-dimmer-mirror',
+      '301-kettle',
+      '301-hairdryer',
+      '301-light-driver',
     ])
     expect(store.devices).toHaveLength(store.rooms.length * room.devices.length)
     expect(new Set(store.devices.map((device) => device.type))).toEqual(
       new Set(Object.keys(store.deviceMeta)),
     )
     // 新类型里也要有离线设备，OTA 与状态展示才有"正常/异常"的样本。
-    for (const type of ['nightlight', 'kettle', 'tv', 'thermostat'] as const) {
+    for (const type of ['card-power', 'switch-1k', 'remote-ac', 'presence'] as const) {
       expect(
         store.devices.filter((device) => device.type === type && !device.online).length,
       ).toBeGreaterThan(0)
     }
 
-    // 房间设备清单里新类型各有一张卡，名称与类型文案取自设备元数据。
+    // 房间设备清单里每种类型各有一张卡，名称与类型文案取自设备元数据。
     expect(wrapper.findAll('.device-card')).toHaveLength(room.devices.length)
-    for (const label of ['夜灯', '热水壶', '电视', '温控面板']) {
+    for (const label of ['门锁', '插卡取电', '1k 开关', '温控器', '窗纱电机', '电吹风']) {
       expect(wrapper.text()).toContain(label)
     }
 
     // 新类型同样能打开设备弹窗，状态页有参数、控制页有各自的下发项。
     const cases = [
-      ['301-nightlight', ['电源开关', '亮度调节', '色温', '延时关闭']],
+      ['301-dimmer-2way', ['电源开关', '亮度调节']],
       ['301-kettle', ['电源开关', '目标水温', '保温模式']],
-      ['301-tv', ['电源开关', '音量', '信号源']],
+      ['301-remote-tv', ['电源开关', '音量', '信号源']],
       ['301-thermostat', ['运行模式', '目标温度', '风速', '面板锁定']],
     ] as const
     for (const [id, labels] of cases) {
@@ -143,6 +207,40 @@ describe('App', () => {
       store.selectedDevice = null
       await nextTick()
     }
+
+    const logTarget = store.devices.find((device) => device.id === '301-light-driver')!
+    store.openDevice(logTarget)
+    store.deviceTab = 'log'
+    await nextTick()
+    expect(wrapper.find('.log-console-toolbar').text()).toContain(
+      `最新 15 条 / 共 ${logTarget.logs.length} 条`,
+    )
+    expect(wrapper.findAll('.log-console-head span').map((item) => item.text())).toEqual([
+      '时间',
+      '级别',
+      '动作来源',
+      '描述',
+    ])
+    const previewRows = wrapper.findAll('.log-console-row')
+    expect(previewRows).toHaveLength(15)
+    const expectedLogs = sortLogsDesc(logTarget.logs).slice(0, 15)
+    previewRows.forEach((row, index) => {
+      const log = expectedLogs[index]!
+      const cells = row.findAll('time, b, span')
+      expect(cells.map((cell) => cell.text())).toEqual([
+        log.time,
+        log.level,
+        logSourceText(log.source),
+        log.message,
+      ])
+    })
+
+    await wrapper.find('.log-console-toolbar .text-button').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.log-history-dialog').exists()).toBe(true)
+    expect(wrapper.find('.log-history-dialog').text()).toContain(
+      `${logTarget.room} · ${logTarget.name} · 以往日志`,
+    )
   })
 
   it('renders the OTA view with each device firmware and the toolbar filters', async () => {
@@ -167,7 +265,11 @@ describe('App', () => {
     const statusOptions = statusFilter.findAll('option')
 
     // 不连云：列表只显示设备自己的当前固件，不再挂一个网关记录的"最新版本"。
-    expect(wrapper.find('.ota-item').text()).toContain('当前固件 v2.3.0')
+    const lightDriver = store.devices.find((device) => device.type === 'light-driver')!
+    const lightDriverRow = wrapper
+      .findAll('.ota-item')
+      .find((row) => row.text().includes(lightDriver.name))!
+    expect(lightDriverRow.text()).toContain('当前固件 v2.3.0')
     expect(wrapper.text()).not.toContain('网关记录')
     expect(wrapper.text()).not.toContain('最新 v')
     expect(wrapper.find('.count-tag').exists()).toBe(false)
@@ -265,8 +367,8 @@ describe('App', () => {
     const countTag = () => wrapper.find('.batch-actions .count-tag').text()
     const submitButton = () => wrapper.find('.batch-actions .primary-button')
     const upgradeable = store.devices.filter((device) => store.canUpgrade(device))
-    const light = upgradeable.find((device) => device.type === 'light')!
-    const otherType = upgradeable.find((device) => device.type !== 'light')!
+    const light = upgradeable.find((device) => device.type === 'light-driver')!
+    const otherType = upgradeable.find((device) => device.type !== 'light-driver')!
 
     // 默认不在选择模式：按钮文案是「批量升级」，列表里没有勾选框。
     expect(wrapper.find('.toolbar .primary-button').text()).toContain('批量升级')
@@ -284,7 +386,7 @@ describe('App', () => {
     await boxOf(light.id).setValue(true)
     await flushPromises()
     expect(countTag()).toContain('已选 1 台')
-    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「智能灯具」')
+    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「灯光驱动」')
     expect(wrapper.findAll('.ota-item.picked')).toHaveLength(1)
 
     // 其它类型的勾选框置灰，强行勾选也进不了本批次。
@@ -342,7 +444,7 @@ describe('App', () => {
     const roomSearch = wrapper.find('.search-box input')
     const countTag = () => wrapper.find('.batch-actions .count-tag').text()
     const selectAllButton = () => wrapper.findAll('.batch-actions .ghost-button')[0]!
-    const lights = store.devices.filter((device) => device.type === 'light')
+    const lights = store.devices.filter((device) => device.type === 'light-driver')
     const upgradeableLights = lights.filter((device) => store.canUpgrade(device))
     const lightsInRoom302 = upgradeableLights.filter((device) => device.room.includes('302'))
 
@@ -356,7 +458,7 @@ describe('App', () => {
     expect(wrapper.find('.batch-actions .count-tag').text()).toContain('已选 0 台')
 
     // 先按类型筛选再「全选」：只勾当前筛选结果里可升级的设备。
-    await typeSelect.setValue('light')
+    await typeSelect.setValue('light-driver')
     await flushPromises()
     expect(wrapper.findAll('.ota-item')).toHaveLength(lights.length)
     expect(wrapper.findAll('.batch-actions .ghost-button')).toHaveLength(2)
@@ -399,9 +501,9 @@ describe('App', () => {
     const selectAllButton = () => wrapper.findAll('.batch-actions .ghost-button')[0]!
     const boxOf = (id: string) =>
       wrapper.findAll('.ota-check input')[store.devices.findIndex((item) => item.id === id)]!
-    const ac = store.devices.find((device) => device.type === 'ac' && store.canUpgrade(device))!
+    const ac = store.devices.find((device) => device.type === 'remote-ac' && store.canUpgrade(device))!
     const upgradeableLights = store.devices.filter(
-      (device) => device.type === 'light' && store.canUpgrade(device),
+      (device) => device.type === 'light-driver' && store.canUpgrade(device),
     )
 
     // 在「全部类型」下勾一台空调，类型锁落到中央空调。
@@ -410,14 +512,14 @@ describe('App', () => {
     await boxOf(ac.id).setValue(true)
     await flushPromises()
     expect(countTag()).toContain('已选 1 台')
-    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「中央空调」')
+    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「空调万能遥控器」')
 
     // 切到智能灯具：旧批次清空，否则藏起来的空调会一直锁着类型，灯具一台都勾不动。
-    await typeSelect.setValue('light')
+    await typeSelect.setValue('light-driver')
     await flushPromises()
     expect(countTag()).toContain('已选 0 台')
     expect(wrapper.find('.batch-hint').text()).toContain('勾选第一台设备后将锁定其类型')
-    expect(store.toastMessage).toBe('已切换到智能灯具，本批次已清空')
+    expect(store.toastMessage).toBe('已切换到灯光驱动，本批次已清空')
 
     // 全选不再置灰，且能把当前类型的可升级设备全部勾上。
     expect((selectAllButton().element as HTMLButtonElement).disabled).toBe(false)
@@ -444,7 +546,7 @@ describe('App', () => {
     const upgradingIds = () =>
       store.devices.filter((device) => store.otaBusy(device)).map((device) => device.id)
     const lights = store.devices.filter(
-      (device) => device.type === 'light' && store.canUpgrade(device),
+      (device) => device.type === 'light-driver' && store.canUpgrade(device),
     )
     expect(lights.length).toBeGreaterThan(1)
 
@@ -459,7 +561,7 @@ describe('App', () => {
     const dialog = wrapper.find('.confirm-dialog')
     expect(dialog.exists()).toBe(true)
     // 弹窗里交代清楚批次范围与设备类型。
-    expect(dialog.text()).toContain('本次共 2 台智能灯具')
+    expect(dialog.text()).toContain('本次共 2 台灯光驱动')
 
     // 取消后既不发升级，也不该留下任何升级中的设备；勾选保留，方便重选固件。
     await wrapper.find('.confirm-footer .ghost-button').trigger('click')
@@ -539,7 +641,7 @@ describe('App', () => {
       },
     })
     const store = useGatewayStore(pinia)
-    const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+    const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
     expect(ac.firmware).toBe('v2.4.0')
 
     await wrapper.find('.toolbar .primary-button').trigger('click')
@@ -578,7 +680,7 @@ describe('App', () => {
       },
     })
     const store = useGatewayStore(pinia)
-    const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+    const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
 
     await wrapper.find('.toolbar .primary-button').trigger('click')
     await flushPromises()
@@ -625,7 +727,7 @@ describe('App', () => {
       },
     })
     const store = useGatewayStore(pinia)
-    const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+    const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
 
     await wrapper.find('.toolbar .primary-button').trigger('click')
     await flushPromises()
@@ -655,7 +757,7 @@ describe('App', () => {
     vi.useFakeTimers()
     try {
       const store = useGatewayStore(createPinia())
-      const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+      const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
       store.otaFault = 'write'
 
       store.startUpgrade(ac, 'v2.5.0')
@@ -710,7 +812,7 @@ describe('App', () => {
     vi.useFakeTimers()
     try {
       const store = useGatewayStore(createPinia())
-      const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+      const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
 
       store.otaFault = 'write'
       store.startUpgrade(ac, 'v2.5.0')
@@ -745,7 +847,7 @@ describe('App', () => {
       },
     })
     const store = useGatewayStore(pinia)
-    const ac = store.devices.find((device) => device.type === 'ac' && device.online)!
+    const ac = store.devices.find((device) => device.type === 'remote-ac' && device.online)!
 
     // 开发环境的故障注入开关：演示升级失败用，生产构建不会渲染。
     const injection = wrapper.find('.dev-injection select')
@@ -796,7 +898,7 @@ describe('App', () => {
     try {
       const store = useGatewayStore(createPinia())
       const lights = store.devices.filter(
-        (device) => device.type === 'light' && store.canUpgrade(device),
+        (device) => device.type === 'light-driver' && store.canUpgrade(device),
       )
       expect(lights.length).toBeGreaterThan(5)
 
@@ -839,7 +941,7 @@ describe('App', () => {
     try {
       const store = useGatewayStore(createPinia())
       const lights = store.devices.filter(
-        (device) => device.type === 'light' && store.canUpgrade(device),
+        (device) => device.type === 'light-driver' && store.canUpgrade(device),
       )
       // 演示注入：批次内每 5 台里的后 3 台在写入阶段失败，前 2 台正常。
       store.otaFault = 'batch-partial'
@@ -881,7 +983,7 @@ describe('App', () => {
     try {
       const store = useGatewayStore(createPinia())
       const lights = store.devices.filter(
-        (device) => device.type === 'light' && store.canUpgrade(device),
+        (device) => device.type === 'light-driver' && store.canUpgrade(device),
       )
       store.requestUpgradeMany(lights)
       store.confirmUpgrade({
@@ -918,7 +1020,7 @@ describe('App', () => {
     const boxOf = (id: string) =>
       wrapper.findAll('.ota-check input')[store.devices.findIndex((item) => item.id === id)]!
     const lights = store.devices.filter(
-      (device) => device.type === 'light' && store.canUpgrade(device),
+      (device) => device.type === 'light-driver' && store.canUpgrade(device),
     )
 
     // 面板初始不存在。
@@ -979,7 +1081,7 @@ describe('App', () => {
     })
     const store = useGatewayStore(pinia)
     const lights = store.devices.filter(
-      (device) => device.type === 'light' && store.canUpgrade(device),
+      (device) => device.type === 'light-driver' && store.canUpgrade(device),
     )
     const boxOf = (id: string) =>
       wrapper.findAll('.ota-check input')[store.devices.findIndex((item) => item.id === id)]!
@@ -1037,7 +1139,7 @@ describe('App', () => {
     })
     const store = useGatewayStore(pinia)
     const lights = store.devices.filter(
-      (device) => device.type === 'light' && store.canUpgrade(device),
+        (device) => device.type === 'light-driver' && store.canUpgrade(device),
     )
 
     vi.useFakeTimers()
@@ -1100,9 +1202,9 @@ describe('App', () => {
   it('rejects a batch that mixes device types and skips devices that can no longer upgrade', () => {
     const store = useGatewayStore(createPinia())
     const upgradeable = store.devices.filter((device) => store.canUpgrade(device))
-    const light = upgradeable.find((device) => device.type === 'light')!
-    const ac = upgradeable.find((device) => device.type === 'ac')!
-    const offlineLight = store.devices.find((device) => device.type === 'light' && !device.online)!
+    const light = upgradeable.find((device) => device.type === 'light-driver')!
+    const ac = upgradeable.find((device) => device.type === 'remote-ac')!
+    const offlineLight = store.devices.find((device) => device.type === 'light-driver' && !device.online)!
 
     // 类型不同直接拒绝，不会打开上传固件弹窗。
     store.requestUpgradeMany([light, ac])
@@ -1119,6 +1221,26 @@ describe('App', () => {
     store.requestUpgradeMany([offlineLight])
     expect(store.pendingUpgrade).toHaveLength(0)
     expect(store.toastMessage).toBe('所选设备当前都不可升级')
+  })
+
+  it('generates enough demo log data to exercise the source and date filters', () => {
+    const store = useGatewayStore(createPinia())
+
+    // 每台设备的历史里都要铺开多类动作来源，弹窗按来源筛才有可筛的内容。
+    for (const device of store.devices) {
+      expect(logSourcesOf(device.logs).length).toBeGreaterThanOrEqual(3)
+    }
+
+    // 历史跨度要大于「近 7 天」这个默认区间，点「全部」时条数才会变多，
+    // 日期区间与动作来源两个筛选叠加的效果才看得出来。
+    const days = new Set(store.devices[0]!.logs.map((log) => logDate(log)))
+    expect(days.size).toBeGreaterThan(7)
+
+    // 日志中心里每种来源都占住一部分行（筛选框的选项都由这些来源生成），
+    // 所以按来源筛的时候行数会明显减少，而不是整表和空表来回跳。
+    const kinds = new Set(store.deviceLogs.map((row) => row.log.source))
+    expect(kinds.size).toBeGreaterThanOrEqual(3)
+    expect(kinds.size).toBeLessThan(store.deviceLogs.length)
   })
 
   it('shows exactly one row per device in the log center, with its newest log', async () => {
@@ -1156,9 +1278,9 @@ describe('App', () => {
     })
 
     // 以 301 主灯为例：只有一行，且描述是最新那条，不是几条历史一起铺开。
-    const target = store.devices.find((device) => device.id === '301-light')!
+    const target = store.devices.find((device) => device.id === '301-light-driver')!
     const latest = latestLogOf(target)!
-    const roomRows = rows.filter((row) => row.text().includes('301'))
+    const roomRows = rows.filter((row) => row.findAll('td')[1]?.text() === target.room)
     expect(roomRows).toHaveLength(
       store.devices.filter((device) => device.room === target.room).length,
     )
@@ -1195,11 +1317,11 @@ describe('App', () => {
       '全部类型',
       ...Object.values(store.deviceMeta).map((meta) => meta.label),
     ])
-    await typeFilter.setValue('light')
+    await typeFilter.setValue('light-driver')
     await flushPromises()
     expect(dataRows()).toHaveLength(
       store.deviceLogs.filter(
-        (row) => row.device.room.includes(target.room) && row.device.type === 'light',
+        (row) => row.device.room.includes(target.room) && row.device.type === 'light-driver',
       ).length,
     )
 
@@ -1209,7 +1331,7 @@ describe('App', () => {
     const expectedCombined = store.deviceLogs.filter(
       (row) =>
         row.device.room.includes(target.room) &&
-        row.device.type === 'light' &&
+        row.device.type === 'light-driver' &&
         row.log.level === 'ERROR',
     )
     expect(dataRows()).toHaveLength(expectedCombined.length)
@@ -1257,7 +1379,7 @@ describe('App', () => {
       },
     })
     const store = useGatewayStore(pinia)
-    const target = store.devices.find((device) => device.id === '301-light')!
+    const target = store.devices.find((device) => device.id === '301-light-driver')!
 
     expect(wrapper.find('.log-history-dialog').exists()).toBe(false)
     const targetRow = wrapper
@@ -1278,62 +1400,64 @@ describe('App', () => {
     ])
 
     // 默认查最近 7 天：这台设备的历史日志（多日）都在区间里，一条不少。
-    const dates = target.logs.map((log) => log.at.slice(0, 10))
-    const newest = dates.reduce((left, right) => (left > right ? left : right))
-    const oldest = dates.reduce((left, right) => (left < right ? left : right))
-    const sevenDaysAgo = dayjs(newest).subtract(6, 'day').format('YYYY-MM-DD')
-    const expectedDefault = logsInDateRange(target.logs, sevenDaysAgo, newest)
+    const timestamps = target.logs.map((log) => log.at)
+    const newest = timestamps.reduce((left, right) => (left > right ? left : right))
+    const oldest = timestamps.reduce((left, right) => (left < right ? left : right))
+    const newestMinute = dayjs(newest).startOf('minute').format('YYYY-MM-DDTHH:mm')
+    const oldestMinute = dayjs(oldest).startOf('minute').format('YYYY-MM-DDTHH:mm')
+    const sevenDaysAgo = dayjs(newest).subtract(6, 'day').startOf('day').format('YYYY-MM-DDTHH:mm')
+    const currentMinute = dayjs().startOf('minute').format('YYYY-MM-DDTHH:mm')
+    const expectedDefault = logsInDateRange(target.logs, sevenDaysAgo, currentMinute)
     expect(dialog.findAll('tbody tr')).toHaveLength(expectedDefault.length)
     expect(dialog.text()).toContain(`共 ${expectedDefault.length} 条`)
     // 弹窗里给出完整时间戳，便于和在网关侧核对。
     expect(dialog.find('tbody tr td').text()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
 
-    // 按日期查询：只留某一天，条数与直接按日期过滤一致。
-    const dateInputs = dialog.findAll('input[type="date"]')
+    // 按分钟查询：只留最新日志所在分钟，条数与直接按分钟过滤一致。
+    const dateInputs = dialog.findAll('input[type="datetime-local"]')
     expect(dateInputs).toHaveLength(2)
-    const day = newest
-    const expectedDay = logsInDateRange(target.logs, day, day)
-    await dateInputs[0]!.setValue(day)
+    const expectedMinute = logsInDateRange(target.logs, newestMinute, newestMinute)
+    await dateInputs[0]!.setValue(newestMinute)
     await dateInputs[0]!.trigger('change')
-    await dateInputs[1]!.setValue(day)
+    await dateInputs[1]!.setValue(newestMinute)
     await dateInputs[1]!.trigger('change')
-    expect(dialog.findAll('tbody tr')).toHaveLength(expectedDay.length)
-    expect(dialog.text()).toContain(`共 ${expectedDay.length} 条`)
+    expect(dialog.findAll('tbody tr')).toHaveLength(expectedMinute.length)
+    expect(dialog.text()).toContain(`共 ${expectedMinute.length} 条`)
     dialog.findAll('tbody tr').forEach((row, index) => {
-      const log = expectedDay[index]!
+      const log = expectedMinute[index]!
       const cells = row.findAll('td')
-      expect(cells[0]!.text()).toBe(`${day} ${log.at.slice(11)}`)
+      expect(cells[0]!.text()).toBe(log.at)
       expect(cells[1]!.text()).toBe(log.level)
       expect(cells[2]!.text()).toBe(logSourceText(log.source))
       expect(cells[3]!.text()).toBe(log.message)
     })
 
     // 起点晚于终点时无法查询，起点会自动带上终点，避免筛出空结果。
-    await dateInputs[0]!.setValue('2099-01-01')
+    await dateInputs[0]!.setValue('2099-01-01T00:00')
     await dateInputs[0]!.trigger('change')
-    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe('2099-01-01')
+    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe('2099-01-01T00:00')
     expect(dialog.findAll('tbody tr')).toHaveLength(0)
-    expect(dialog.text()).toContain('所选日期范围内没有日志记录')
+    expect(dialog.text()).toContain('所选时间范围内没有日志记录')
 
-    // 「全部」= 该设备记录的最早 ~ 最新：历史记录全部列出，起止框仍是具体日期，
-    // 不会退化成浏览器原生的 yyyy/mm 空占位。
+    // 「全部」= 该设备记录的最早 ~ 最新：历史记录全部列出，起止框仍是具体分钟，
+    // 不会退化成浏览器原生的日期时间空占位。
     const allPreset = dialog.findAll('.chip').find((chip) => chip.text() === '全部')!
     await allPreset.trigger('click')
     await nextTick()
     expect(dialog.findAll('tbody tr')).toHaveLength(target.logs.length)
-    expect((dateInputs[0]!.element as HTMLInputElement).value).toBe(oldest)
-    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe(newest)
+    expect((dateInputs[0]!.element as HTMLInputElement).value).toBe(oldestMinute)
+    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe(newestMinute)
     expect(dialog.find('.log-history-summary').text()).toBe(
-      `全部时间范围（${oldest} ~ ${newest}）共 ${target.logs.length} 条`,
+      `全部时间范围（${oldestMinute.replace('T', ' ')} ~ ${newestMinute.replace('T', ' ')}）共 ${target.logs.length} 条`,
     )
 
     // 清除单侧（原生 × 或删空）= 放开这一侧：回落该侧边界，输入框不会留空。
     await dateInputs[0]!.setValue('')
     await dateInputs[0]!.trigger('change')
-    expect((dateInputs[0]!.element as HTMLInputElement).value).toBe(oldest)
+    expect((dateInputs[0]!.element as HTMLInputElement).value).toBe(oldestMinute)
     await dateInputs[1]!.setValue('')
     await dateInputs[1]!.trigger('change')
-    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe(newest)
+    expect((dateInputs[1]!.element as HTMLInputElement).value).toBe(newestMinute)
     expect(dialog.findAll('tbody tr')).toHaveLength(target.logs.length)
 
     // 动作来源：选项只取这台设备日志里出现过的来源，筛完仍能对上表格里的来源列。
