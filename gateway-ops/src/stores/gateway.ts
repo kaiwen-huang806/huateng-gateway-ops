@@ -179,6 +179,11 @@ export const useGatewayStore = defineStore('gateway', () => {
     notify(`${device.room} ${device.name} 参数已更新`)
   }
 
+  function sendDeviceCommand(device: Device, command: string) {
+    addLog(device, 'INFO', `下发指令 → ${command}，响应：成功`)
+    notify(`${device.room} ${device.name} 已发送${command}指令`)
+  }
+
   function togglePower(device: Device) {
     device.params.power = !device.params.power
     addLog(device, 'INFO', `${device.name} ${device.params.power ? '开启' : '关闭'}，响应：成功`)
@@ -490,6 +495,7 @@ export const useGatewayStore = defineStore('gateway', () => {
     openDeviceOta,
     togglePower,
     setDeviceParam,
+    sendDeviceCommand,
     startUpgrade,
     enqueueUpgrades,
     otaBatch,

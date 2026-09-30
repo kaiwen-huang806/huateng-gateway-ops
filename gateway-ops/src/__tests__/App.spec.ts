@@ -497,16 +497,18 @@ describe('App', () => {
           '50°C',
           '40°C',
         ])
-        await modeSelect.setValue('加热')
+        await kettleControls.findAll('select')[0]!.setValue('加热')
         expect(kettle.params.mode).toBe('加热')
         await nextTick()
         const enabledTemperatureSelect = kettleControls.find('.kettle-temperature-select')
-        expect((enabledTemperatureSelect.element as HTMLSelectElement).disabled).toBe(true)
+        expect((enabledTemperatureSelect.element as HTMLSelectElement).disabled).toBe(false)
         await kettleControls.find('.kettle-temperature-select').setValue('90')
         expect(kettle.params.temperature).toBe(90)
-        await modeSelect.setValue('保温')
+        await kettleControls.findAll('select')[0]!.setValue('保温')
         await nextTick()
-        expect((temperatureSelect.element as HTMLSelectElement).disabled).toBe(true)
+        expect(
+          (kettleControls.find('.kettle-temperature-select').element as HTMLSelectElement).disabled,
+        ).toBe(true)
       }
       if (id === '301-remote-ac') {
         const temperaturePicker = controls.find('.temperature-picker')

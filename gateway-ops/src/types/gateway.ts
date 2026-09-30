@@ -37,8 +37,6 @@ export type DeviceType =
   | 'kettle'
   | 'hairdryer'
   | 'light-driver'
-<<<<<<< HEAD
-
 export const SWITCH_COUNT_BY_TYPE: Partial<Record<DeviceType, number>> = {
   'switch-1k': 1,
   'switch-2k': 2,
@@ -46,9 +44,6 @@ export const SWITCH_COUNT_BY_TYPE: Partial<Record<DeviceType, number>> = {
   'switch-4k': 4,
   'switch-6k': 6,
 }
-
-=======
->>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
 export type DeviceStatus = 'ok' | 'warn' | 'err'
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR'
 // 动作来源：这条日志由谁触发（客人按键 / 传感器采样 / 平台下发 / 本地联动 …）。
