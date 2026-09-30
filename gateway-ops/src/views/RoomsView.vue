@@ -3,7 +3,11 @@ import { ArrowLeft, Building2, Cpu } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGatewayStore } from '@/stores/gateway'
+<<<<<<< HEAD
 import { SWITCH_COUNT_BY_TYPE, type Device, type Room } from '@/types/gateway'
+=======
+import type { Device, Room } from '@/types/gateway'
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
 import SectionHeading from '@/components/common/SectionHeading.vue'
 
 const route = useRoute()
@@ -43,15 +47,20 @@ function deviceCardParams(device: Device): DeviceCardParam[] {
   const { params, type } = device
 
   if (switchDeviceTypes.has(type)) {
+<<<<<<< HEAD
     const count = SWITCH_COUNT_BY_TYPE[type] ?? 0
     return Array.from({ length: count }, (_, index) => ({
       label: `开关${index + 1}`,
       value: powerParam(params[`switch${index + 1}`]),
     }))
+=======
+    return [{ label: '开关状态', value: powerParam(params.power) }]
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
   }
 
   switch (type) {
     case 'lock':
+<<<<<<< HEAD
       return [
         { label: '门锁状态', value: booleanParam(params.locked, '已上锁', '未上锁') },
         { label: '实时电量', value: numberParam(params.battery, '%') },
@@ -86,6 +95,49 @@ function deviceCardParams(device: Device): DeviceCardParam[] {
       return [{ label: '感应是否有人', value: booleanParam(params.detected, '有人', '无人') }]
     case 'presence':
       return [{ label: '感应是否有人', value: booleanParam(params.present, '有人', '无人') }]
+=======
+      return [{ label: '门锁状态', value: booleanParam(params.locked, '已上锁', '未上锁') }]
+    case 'card-power':
+      return [{ label: '插卡状态', value: booleanParam(params.inserted, '已插卡', '未插卡') }]
+    case 'thermostat':
+      return [
+        { label: '运行模式', value: textParam(params.mode) },
+        { label: '目标温度', value: numberParam(params.temperature, '°C') },
+        { label: '风速', value: textParam(params.fan) },
+        { label: '面板锁定', value: booleanParam(params.locked, '已锁定', '未锁定') },
+      ]
+    case 'remote-ac':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '运行模式', value: textParam(params.mode) },
+        { label: '目标温度', value: numberParam(params.temperature, '°C') },
+        { label: '风速', value: textParam(params.fan) },
+      ]
+    case 'remote-tv':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '音量', value: numberParam(params.volume) },
+        { label: '信号源', value: textParam(params.source) },
+      ]
+    case 'curtain':
+    case 'sheer-curtain':
+      return [{ label: '开启比例', value: numberParam(params.open, '%') }]
+    case 'smart-socket':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '实时电流', value: numberParam(params.current, 'A') },
+      ]
+    case 'pir':
+      return [
+        { label: '红外触发', value: booleanParam(params.detected, '已触发', '未触发') },
+        { label: '灵敏度', value: numberParam(params.sensitivity, '%') },
+      ]
+    case 'presence':
+      return [
+        { label: '存在状态', value: booleanParam(params.present, '有人', '无人') },
+        { label: '检测置信度', value: numberParam(params.confidence, '%') },
+      ]
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
     case 'relay':
       return [{ label: '通断状态', value: powerParam(params.power) }]
     case 'dimmer-2way':
@@ -93,11 +145,16 @@ function deviceCardParams(device: Device): DeviceCardParam[] {
     case 'dimmer-mirror':
     case 'light-driver':
       return [
+<<<<<<< HEAD
         { label: '开关状态', value: powerParam(params.power) },
+=======
+        { label: '电源状态', value: powerParam(params.power) },
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
         { label: '亮度', value: numberParam(params.brightness, '%') },
       ]
     case 'kettle':
       return [
+<<<<<<< HEAD
         { label: '烧水开关', value: booleanParam(params.boil, '开启', '关闭') },
         { label: '保温温度', value: numberParam(params.temperature, '°C') },
         { label: '保温开关', value: booleanParam(params.keepWarm, '开启', '关闭') },
@@ -105,6 +162,15 @@ function deviceCardParams(device: Device): DeviceCardParam[] {
     case 'hairdryer':
       return [
         { label: '开关状态', value: powerParam(params.power) },
+=======
+        { label: '电源状态', value: powerParam(params.power) },
+        { label: '目标水温', value: numberParam(params.temperature, '°C') },
+        { label: '保温模式', value: booleanParam(params.keepWarm, '开启', '关闭') },
+      ]
+    case 'hairdryer':
+      return [
+        { label: '电源状态', value: powerParam(params.power) },
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
         { label: '风速档位', value: numberParam(params.level, ' 档') },
       ]
   }

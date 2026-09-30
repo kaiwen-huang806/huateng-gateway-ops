@@ -8,6 +8,7 @@ import router from '../router'
 import App from '../App.vue'
 import type { ViewKey } from '../types/gateway'
 import { useGatewayStore } from '../stores/gateway'
+import { mockGatewayApi } from '../services/gateway'
 import {
   latestLogOf,
   logDate,
@@ -26,6 +27,14 @@ beforeEach(() => {
 })
 
 describe('App', () => {
+  it('provides simulated smart socket telemetry through the gateway API', async () => {
+    await expect(mockGatewayApi.getDeviceTelemetry('301-smart-socket')).resolves.toEqual({
+      deviceId: '301-smart-socket',
+      current: 1.8,
+      powerUsage: 180,
+    })
+  })
+
   it('mounts renders properly', async () => {
     await router.push('/overview')
     await router.isReady()
@@ -182,16 +191,78 @@ describe('App', () => {
 
     // 房间设备清单里每种类型各有一张卡，名称与类型文案取自设备元数据。
     expect(wrapper.findAll('.device-card')).toHaveLength(room.devices.length)
+    expect(wrapper.find('.device-card').text()).not.toContain('开关状态--')
+    const remoteAcCard = wrapper
+      .findAll('.device-card')
+      .find((card) => card.text().includes('空调遥控器'))
+    expect(remoteAcCard?.text()).toContain('空调状态')
+    expect(remoteAcCard?.text()).not.toContain('开关状态')
+    expect(remoteAcCard?.text()).not.toContain('运行模式')
+    expect(remoteAcCard?.text()).not.toContain('目标温度')
+    expect(remoteAcCard?.text()).not.toContain('风速')
+    const remoteTvCard = wrapper
+      .findAll('.device-card')
+      .find((card) => card.text().includes('电视遥控器'))
+    expect(remoteTvCard?.text()).toContain('电视状态')
+    expect(remoteTvCard?.text()).not.toContain('开关状态')
+    expect(remoteTvCard?.text()).not.toContain('音量')
+    expect(remoteTvCard?.text()).not.toContain('频道')
+    const smartSocketCard = wrapper
+      .findAll('.device-card')
+      .find((card) => card.text().includes('智能插座'))
+    expect(smartSocketCard?.text()).toContain('实时功率')
+    expect(smartSocketCard?.text()).toContain('实时电流')
+    const thermostatCard = wrapper
+      .findAll('.device-card')
+      .find((card) => card.text().includes('温控器'))
+    expect(thermostatCard?.text()).toContain('室内温度')
+    const cardPowerCard = wrapper
+      .findAll('.device-card')
+      .find((card) => card.text().includes('插卡取电'))
+    expect(cardPowerCard?.text()).toContain('门磁状态')
+    const lockCard = wrapper.findAll('.device-card').find((card) => card.text().includes('门锁'))
+    expect(lockCard?.text()).toContain('实时电量')
+    for (const deviceLabel of ['人体红外传感器', '人体存在传感器']) {
+      const sensorCard = wrapper
+        .findAll('.device-card')
+        .find((card) => card.text().includes(deviceLabel))
+      expect(sensorCard?.text()).toContain('感应是否有人')
+      expect(sensorCard?.text()).not.toContain('灵敏度')
+      expect(sensorCard?.text()).not.toContain('置信度')
+    }
+    const curtainCards = wrapper
+      .findAll('.device-card')
+      .filter((card) => card.text().includes('窗帘电机') || card.text().includes('窗纱电机'))
+    expect(curtainCards).toHaveLength(2)
+    curtainCards.forEach((card) => {
+      expect(card.text()).toContain('开合比例')
+    })
     for (const label of ['门锁', '插卡取电', '1k 开关', '温控器', '窗纱电机', '电吹风']) {
       expect(wrapper.text()).toContain(label)
     }
 
     // 新类型同样能打开设备弹窗，状态页有参数、控制页有各自的下发项。
     const cases = [
-      ['301-dimmer-2way', ['电源开关', '亮度调节']],
-      ['301-kettle', ['电源开关', '目标水温', '保温模式']],
-      ['301-remote-tv', ['电源开关', '音量', '信号源']],
-      ['301-thermostat', ['运行模式', '目标温度', '风速', '面板锁定']],
+      ['301-dimmer-2way', ['灯1', '灯2']],
+      ['301-dimmer-4way', ['灯1', '灯2', '灯3', '灯4']],
+      ['301-light-driver', ['灯1', '灯2']],
+      ['301-kettle', ['电源开关', '工作模式', '目标温度']],
+      ['301-remote-tv', ['电视开关', '音量', '静音', '信号源', '频道']],
+      ['301-thermostat', ['电源开关', '运行模式', '目标温度', '风速']],
+      ['301-remote-ac', ['空调开关', '运行模式', '目标温度', '风速']],
+      ['301-lock', ['门锁状态', '远程开锁']],
+      ['301-card-power', ['插卡状态', '门磁状态']],
+      ['301-switch-1k', ['开关1']],
+      ['301-switch-2k', ['开关1', '开关2']],
+      ['301-switch-3k', ['开关1', '开关2', '开关3']],
+      ['301-switch-4k', ['开关1', '开关2', '开关3', '开关4']],
+      ['301-switch-6k', ['开关1', '开关2', '开关3', '开关4', '开关5', '开关6']],
+      ['301-curtain', ['开合比例', '开合控制']],
+      ['301-sheer-curtain', ['开合比例', '开合控制']],
+      ['301-smart-socket', ['电源开关']],
+      ['301-hairdryer', ['电源开关', '温度档位', '风速档位']],
+      ['301-pir', []],
+      ['301-presence', []],
     ] as const
     for (const [id, labels] of cases) {
       store.openDevice(store.devices.find((device) => device.id === id)!)
@@ -203,6 +274,270 @@ describe('App', () => {
       const controls = wrapper.find('.control-list')
       expect(controls.exists()).toBe(true)
       for (const label of labels) expect(controls.text()).toContain(label)
+
+      if (id === '301-remote-ac') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('空调状态')
+        expect(status.text()).not.toContain('开关状态')
+        expect(status.text()).not.toContain('目标温度')
+        expect(status.text()).not.toContain('运行模式')
+        expect(status.text()).not.toContain('风速')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+      }
+      if (id === '301-remote-tv') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('电视状态')
+        expect(status.text()).not.toContain('开关状态')
+        expect(status.text()).not.toContain('音量')
+        expect(status.text()).not.toContain('信号源')
+        expect(status.text()).not.toContain('频道')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const tvControls = wrapper.find('.control-list')
+        expect(tvControls.findAll('.stepper-control')).toHaveLength(2)
+        expect(tvControls.findAll('.control-row')).toHaveLength(4)
+        expect(tvControls.findAll('.control-row')[1]!.text()).toContain('静音')
+        expect(tvControls.find('.tv-mute-button').exists()).toBe(true)
+        expect(tvControls.findAll('.control-row')[2]!.text()).toContain('调频')
+        expect(tvControls.find('.tv-tuning-button').exists()).toBe(true)
+        expect(tvControls.findAll('select')).toHaveLength(1)
+        expect(tvControls.find('select').findAll('option').map((option) => option.text())).toEqual([
+          '网络',
+          '直播',
+        ])
+        await tvControls.find('.tv-tuning-button').trigger('click')
+        const tuningDialog = wrapper.find('.tv-tuning-dialog')
+        expect(tuningDialog.exists()).toBe(true)
+        expect(tuningDialog.findAll('.tv-tuning-keypad > button')).toHaveLength(11)
+        await tuningDialog.find('button[aria-label="输入数字1"]').trigger('click')
+        await tuningDialog.find('button[aria-label="输入数字2"]').trigger('click')
+        await tuningDialog.find('button[aria-label="输入数字3"]').trigger('click')
+        await tuningDialog.find('button[aria-label="输入数字4"]').trigger('click')
+        expect(tuningDialog.find('.tv-tuning-header b').text()).toBe('123')
+        expect((tuningDialog.find('button[aria-label="输入数字4"]').element as HTMLButtonElement).disabled).toBe(true)
+        await tuningDialog.find('.tv-tuning-delete').trigger('click')
+        expect(tuningDialog.find('.tv-tuning-header b').text()).toBe('12')
+        await tuningDialog.find('.tv-tuning-clear').trigger('click')
+        expect(tuningDialog.find('.tv-tuning-header b').text()).toBe('—')
+        expect((tuningDialog.find('.tv-tuning-confirm').element as HTMLButtonElement).disabled).toBe(true)
+        await tuningDialog.find('button[aria-label="输入数字1"]').trigger('click')
+        await tuningDialog.find('button[aria-label="输入数字2"]').trigger('click')
+        await tuningDialog.find('button[aria-label="输入数字3"]').trigger('click')
+        await tuningDialog.find('.tv-tuning-confirm').trigger('click')
+        expect(wrapper.find('.tv-tuning-dialog').exists()).toBe(false)
+        const tuningLog = store.devices.find((device) => device.id === id)!.logs[0]
+        expect(tuningLog?.message).toBe('下发指令 → 频道切换至 123，响应：成功')
+        await tvControls.find('.tv-tuning-button').trigger('click')
+        await wrapper.find('.tv-tuning-dialog .tv-tuning-back').trigger('click')
+        expect(wrapper.find('.tv-tuning-dialog').exists()).toBe(false)
+        const tv = store.devices.find((device) => device.id === id)!
+        expect(tv.params).not.toHaveProperty('volume')
+        expect(tv.params).not.toHaveProperty('channel')
+        const steppers = tvControls.findAll('.stepper-control')
+        await steppers[0]!.find('button[aria-label="音量加一"]').trigger('click')
+        await steppers[1]!.find('button[aria-label="频道加一"]').trigger('click')
+        await steppers[0]!.find('button[aria-label="音量加一"]').trigger('click')
+        await steppers[1]!.find('button[aria-label="频道加一"]').trigger('click')
+        await steppers[0]!.find('button[aria-label="音量减一"]').trigger('click')
+        await steppers[1]!.find('button[aria-label="频道减一"]').trigger('click')
+        expect(tv.params).not.toHaveProperty('volume')
+        expect(tv.params).not.toHaveProperty('channel')
+        expect(tv.logs.slice(0, 6).map((log) => log.message)).toEqual([
+          '下发指令 → 频道减少一格，响应：成功',
+          '下发指令 → 音量减少一格，响应：成功',
+          '下发指令 → 频道增加一格，响应：成功',
+          '下发指令 → 音量增加一格，响应：成功',
+          '下发指令 → 频道增加一格，响应：成功',
+          '下发指令 → 音量增加一格，响应：成功',
+        ])
+      }
+      if (id === '301-lock') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        expect(wrapper.find('.param-grid').text()).not.toContain('远程开锁')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        expect(wrapper.find('.control-list').text()).toContain('远程开锁')
+        await wrapper.findAll('.modal-tabs button')[0]!.trigger('click')
+        expect(wrapper.find('.param-grid').text()).not.toContain('--')
+        expect(wrapper.find('.param-grid').text()).toContain('实时电量')
+      }
+      if (id === '301-card-power') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        expect(wrapper.find('.param-grid').text()).toContain('门磁状态')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const cardPowerControls = wrapper.find('.control-list')
+        expect(cardPowerControls.text()).toContain('插卡状态')
+        expect(cardPowerControls.text()).toContain('门磁状态')
+        expect(cardPowerControls.findAll('.switch')).toHaveLength(2)
+      }
+      if (id.startsWith('301-switch-')) {
+        const switchControls = controls.findAll('.switch')
+        expect(switchControls).toHaveLength(labels.length)
+        const switchDevice = store.devices.find((device) => device.id === id)!
+        const before = { ...switchDevice.params }
+        await switchControls[0]!.trigger('click')
+        expect(switchDevice.params.switch1).toBe(!before.switch1)
+        for (let index = 1; index < labels.length; index += 1) {
+          expect(switchDevice.params[`switch${index + 1}`]).toBe(
+            before[`switch${index + 1}`],
+          )
+        }
+      }
+      if (id === '301-curtain' || id === '301-sheer-curtain') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('开合比例')
+        expect(status.text()).toContain('42%')
+        expect(status.text()).not.toContain('开合控制')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const curtainControls = wrapper.find('.control-list')
+        expect(curtainControls.text()).toContain('开合控制')
+        expect(curtainControls.text()).toContain('开合比例')
+        expect(curtainControls.findAll('input[type="range"]')).toHaveLength(1)
+        expect(curtainControls.findAll('.action-group')).toHaveLength(1)
+        expect(curtainControls.findAll('.action-group button').map((button) => button.text())).toEqual([
+          '开',
+          '关',
+          '停',
+        ])
+        const curtain = store.devices.find((device) => device.id === id)!
+        expect(curtain.params).not.toHaveProperty('open')
+        for (const action of ['开', '关', '停', '开']) {
+          await curtainControls
+            .findAll('.action-group button')
+            .find((button) => button.text() === action)!
+            .trigger('click')
+        }
+        expect(curtain.params).not.toHaveProperty('open')
+        await curtainControls.find('input[type="range"]').setValue('68')
+        expect(curtain.params.openingPercentage).toBe(68)
+      }
+      if (id === '301-smart-socket') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('实时功率')
+        expect(status.text()).toContain('实时电流')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        expect(wrapper.find('.control-list').text()).not.toContain('实时功率')
+        expect(wrapper.find('.control-list').text()).not.toContain('实时电流')
+        const socket = store.devices.find((device) => device.id === id)!
+        expect(socket.params).toHaveProperty('powerUsage', 180)
+        expect(socket.params).toHaveProperty('current', 1.8)
+      }
+      if (id === '301-dimmer-2way' || id === '301-dimmer-4way' || id === '301-light-driver') {
+        const expectedCount = id === '301-dimmer-4way' ? 4 : 2
+        const dimmer = store.devices.find((device) => device.id === id)!
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        expect(wrapper.find('.param-grid').text()).toContain(`灯${expectedCount}亮度`)
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const dimmerControls = wrapper.find('.control-list')
+        expect(dimmerControls.findAll('.control-row')).toHaveLength(expectedCount)
+        expect(dimmerControls.findAll('input[type="range"]')).toHaveLength(expectedCount)
+        await dimmerControls.find('input[type="range"]').setValue('66')
+        expect(dimmer.params.lamp1Brightness).toBe(66)
+      }
+      if (id === '301-pir' || id === '301-presence') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('感应是否有人')
+        expect(status.text()).not.toContain('灵敏度')
+        expect(status.text()).not.toContain('置信度')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        expect(wrapper.find('.control-list').text()).not.toContain('感应是否有人')
+        expect(wrapper.find('.control-list').findAll('.control-row')).toHaveLength(0)
+        const sensor = store.devices.find((device) => device.id === id)!
+        expect(sensor.params).not.toHaveProperty('sensitivity')
+        expect(sensor.params).not.toHaveProperty('confidence')
+      }
+      if (id === '301-thermostat') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        expect(wrapper.find('.param-grid').text()).toContain('室内温度')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const temperaturePicker = controls.find('.temperature-picker')
+        expect(temperaturePicker.exists()).toBe(true)
+        await temperaturePicker.find('.temperature-trigger').trigger('click')
+        expect(document.querySelectorAll('.temperature-menu--teleport button')).toHaveLength(15)
+      }
+      if (id === '301-kettle') {
+        const kettle = store.devices.find((device) => device.id === id)!
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const kettleStatus = wrapper.find('.param-grid')
+        expect(kettleStatus.text()).toContain('当前水温')
+        expect(kettleStatus.text()).toContain('86°C')
+        expect(kettleStatus.text()).toContain('工作电流')
+        expect(kettleStatus.text()).toContain('6.4A')
+        expect(kettleStatus.text()).toContain('工作电压')
+        expect(kettleStatus.text()).toContain('220V')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        const kettleControls = controls
+        expect(kettleControls.text()).toContain('电源开关')
+        expect(kettleControls.text()).toContain('工作模式')
+        expect(kettleControls.text()).toContain('目标温度')
+        expect(kettleControls.findAll('.switch')).toHaveLength(1)
+        const modeSelect = kettleControls.findAll('select')[0]!
+        const temperatureSelect = kettleControls.find('.kettle-temperature-select')
+        expect(temperatureSelect.exists()).toBe(true)
+        expect((temperatureSelect.element as HTMLSelectElement).disabled).toBe(true)
+        expect(temperatureSelect.findAll('option').map((option) => option.text())).toEqual([
+          '100°C',
+          '90°C',
+          '80°C',
+          '70°C',
+          '60°C',
+          '50°C',
+          '40°C',
+        ])
+        await modeSelect.setValue('加热')
+        expect(kettle.params.mode).toBe('加热')
+        await nextTick()
+        const enabledTemperatureSelect = kettleControls.find('.kettle-temperature-select')
+        expect((enabledTemperatureSelect.element as HTMLSelectElement).disabled).toBe(true)
+        await kettleControls.find('.kettle-temperature-select').setValue('90')
+        expect(kettle.params.temperature).toBe(90)
+        await modeSelect.setValue('保温')
+        await nextTick()
+        expect((temperatureSelect.element as HTMLSelectElement).disabled).toBe(true)
+      }
+      if (id === '301-remote-ac') {
+        const temperaturePicker = controls.find('.temperature-picker')
+        expect(temperaturePicker.exists()).toBe(true)
+        await temperaturePicker.find('.temperature-trigger').trigger('click')
+        expect(document.querySelectorAll('.temperature-menu--teleport button')).toHaveLength(15)
+      }
+      if (id === '301-hairdryer') {
+        const statusTab = wrapper.findAll('.modal-tabs button')[0]
+        await statusTab!.trigger('click')
+        const status = wrapper.find('.param-grid')
+        expect(status.text()).toContain('温度档位')
+        expect(status.text()).toContain('工作电压')
+        expect(status.text()).toContain('NTC温度')
+        expect(status.text()).toContain('电机转速')
+        expect(status.text()).toContain('电机电流')
+        await wrapper.findAll('.modal-tabs button')[1]!.trigger('click')
+        expect(controls.findAll('select')).toHaveLength(2)
+        expect(controls.findAll('select')[0]!.findAll('option').map((option) => option.text())).toEqual([
+          '0 档',
+          '1 档',
+          '2 档',
+          '3 档',
+        ])
+        expect(controls.findAll('select')[1]!.findAll('option').map((option) => option.text())).toEqual([
+          '0 档',
+          '1 档',
+          '2 档',
+          '3 档',
+        ])
+      }
 
       store.selectedDevice = null
       await nextTick()
@@ -386,7 +721,7 @@ describe('App', () => {
     await boxOf(light.id).setValue(true)
     await flushPromises()
     expect(countTag()).toContain('已选 1 台')
-    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「灯光驱动」')
+    expect(wrapper.find('.batch-hint').text()).toContain('本批次已锁定「2路灯光驱动」')
     expect(wrapper.findAll('.ota-item.picked')).toHaveLength(1)
 
     // 其它类型的勾选框置灰，强行勾选也进不了本批次。
@@ -519,7 +854,7 @@ describe('App', () => {
     await flushPromises()
     expect(countTag()).toContain('已选 0 台')
     expect(wrapper.find('.batch-hint').text()).toContain('勾选第一台设备后将锁定其类型')
-    expect(store.toastMessage).toBe('已切换到灯光驱动，本批次已清空')
+    expect(store.toastMessage).toBe('已切换到2路灯光驱动，本批次已清空')
 
     // 全选不再置灰，且能把当前类型的可升级设备全部勾上。
     expect((selectAllButton().element as HTMLButtonElement).disabled).toBe(false)
@@ -561,7 +896,7 @@ describe('App', () => {
     const dialog = wrapper.find('.confirm-dialog')
     expect(dialog.exists()).toBe(true)
     // 弹窗里交代清楚批次范围与设备类型。
-    expect(dialog.text()).toContain('本次共 2 台灯光驱动')
+    expect(dialog.text()).toContain('本次共 2 台2路灯光驱动')
 
     // 取消后既不发升级，也不该留下任何升级中的设备；勾选保留，方便重选固件。
     await wrapper.find('.confirm-footer .ghost-button').trigger('click')

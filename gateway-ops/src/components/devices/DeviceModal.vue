@@ -1,22 +1,8 @@
 <script setup lang="ts">
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  CircleAlert,
-  Hash,
-  History,
-  Minus,
-  Plus,
-  Upload,
-  VolumeX,
-  X,
-} from '@lucide/vue'
-import { computed, nextTick, ref } from 'vue'
+import { Check, CircleAlert, Upload, X } from '@lucide/vue'
+import { computed } from 'vue'
 import { useGatewayStore } from '@/stores/gateway'
-import LogHistoryDialog from '@/components/logs/LogHistoryDialog.vue'
-import { SWITCH_COUNT_BY_TYPE, type Device } from '@/types/gateway'
-import { logSourceText, sortLogsDesc } from '@/utils/logs'
+import type { Device } from '@/types/gateway'
 
 const store = useGatewayStore()
 const LOG_PREVIEW_LIMIT = 15
@@ -98,134 +84,51 @@ function dimmerControlSpecs(count: number): ControlSpec[] {
 }
 
 const controlMap: Record<Device['type'], ControlSpec[]> = {
+  light: [
+    { key: 'power', label: '电源开关', kind: 'switch' },
+    { key: 'brightness', label: '亮度调节', kind: 'range', min: 0, max: 100, unit: '%' },
+    { key: 'colorTemp', label: '色温', kind: 'range', min: 2700, max: 6500, unit: 'K' },
+  ],
+  ac: [
+    { key: 'power', label: '电源开关', kind: 'switch' },
+    { key: 'mode', label: '运行模式', kind: 'select', options: ['制冷', '制热', '送风', '除湿'] },
+    { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
+  ],
+  curtain: [{ key: 'open', label: '开启比例', kind: 'range', min: 0, max: 100, unit: '%' }],
   lock: [
     { key: 'locked', label: '门锁状态', kind: 'switch' },
     { key: 'remoteUnlock', label: '远程开锁', kind: 'action' },
   ],
-  'card-power': [
-    { key: 'inserted', label: '插卡状态', kind: 'switch' },
-    { key: 'doorMagnet', label: '门磁状态', kind: 'switch' },
-  ],
-  'switch-1k': switchControlSpecs('switch-1k'),
-  'switch-2k': switchControlSpecs('switch-2k'),
-  'switch-3k': switchControlSpecs('switch-3k'),
-  'switch-4k': switchControlSpecs('switch-4k'),
-  'switch-6k': switchControlSpecs('switch-6k'),
-  thermostat: [
-    { key: 'power', label: '电源开关', kind: 'switch' },
-    {
-      key: 'temperature',
-      label: '目标温度',
-      kind: 'select',
-      options: temperatureOptions,
-      unit: '°C',
-    },
-    { key: 'mode', label: '运行模式', kind: 'select', options: ['制冷', '制热', '送风', '自动'] },
-    { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
-  ],
-  'remote-ac': [
-    { key: 'power', label: '空调开关', kind: 'switch' },
-    {
-      key: 'temperature',
-      label: '目标温度',
-      kind: 'select',
-      options: temperatureOptions,
-      unit: '°C',
-    },
-    { key: 'mode', label: '运行模式', kind: 'select', options: ['制冷', '制热', '送风', '除湿'] },
-    { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
-  ],
-  'remote-tv': [
-    { key: 'power', label: '电视开关', kind: 'switch' },
-    { key: 'volume', label: '音量', kind: 'stepper' },
-    { key: 'channel', label: '频道', kind: 'stepper' },
-    { key: 'source', label: '信号源', kind: 'select', options: ['网络', '直播'] },
-  ],
-  curtain: [
-    { key: 'motion', label: '开合控制', kind: 'action-group', options: ['开', '关', '停'] },
-    { key: 'openingPercentage', label: '开合比例', kind: 'range', min: 0, max: 100, unit: '%' },
-  ],
-  'sheer-curtain': [
-    { key: 'motion', label: '开合控制', kind: 'action-group', options: ['开', '关', '停'] },
-    { key: 'openingPercentage', label: '开合比例', kind: 'range', min: 0, max: 100, unit: '%' },
-  ],
-  'smart-socket': [
-    { key: 'power', label: '电源开关', kind: 'switch' },
-  ],
-  pir: [],
-  presence: [],
-  relay: [{ key: 'power', label: '通断控制', kind: 'switch' }],
-  'dimmer-2way': [
-    ...dimmerControlSpecs(2),
-  ],
-  'dimmer-4way': [
-    ...dimmerControlSpecs(4),
-  ],
-  'dimmer-mirror': [
+  nightlight: [
     { key: 'power', label: '电源开关', kind: 'switch' },
     { key: 'brightness', label: '亮度调节', kind: 'range', min: 0, max: 100, unit: '%' },
+    { key: 'colorTemp', label: '色温', kind: 'range', min: 2700, max: 6500, unit: 'K' },
+    { key: 'delay', label: '延时关闭', kind: 'number', unit: '分钟' },
   ],
   kettle: [
     { key: 'power', label: '电源开关', kind: 'switch' },
-    { key: 'mode', label: '工作模式', kind: 'select', options: ['保温', '加热', '待机'] },
+    { key: 'temperature', label: '目标水温', kind: 'number', unit: '°C' },
+    { key: 'keepWarm', label: '保温模式', kind: 'switch' },
   ],
-  hairdryer: [
+  tv: [
     { key: 'power', label: '电源开关', kind: 'switch' },
-    { key: 'temperatureLevel', label: '温度档位', kind: 'select', options: ['0 档', '1 档', '2 档', '3 档'] },
-    { key: 'level', label: '风速档位', kind: 'select', options: ['0 档', '1 档', '2 档', '3 档'] },
+    { key: 'volume', label: '音量', kind: 'range', min: 0, max: 100, unit: '%' },
+    {
+      key: 'source',
+      label: '信号源',
+      kind: 'select',
+      options: ['HDMI 1', 'HDMI 2', '投屏', '有线电视'],
+    },
   ],
-  'light-driver': [...dimmerControlSpecs(2)],
+  thermostat: [
+    { key: 'mode', label: '运行模式', kind: 'select', options: ['制冷', '制热', '送风', '自动'] },
+    { key: 'temperature', label: '目标温度', kind: 'number', unit: '°C' },
+    { key: 'fan', label: '风速', kind: 'select', options: ['自动', '低速', '中速', '高速'] },
+    { key: 'locked', label: '面板锁定', kind: 'switch' },
+  ],
 }
 
 const specs = computed(() => (store.selectedDevice ? controlMap[store.selectedDevice.type] : []))
-const statusOnlySpecs: Partial<Record<Device['type'], ControlSpec[]>> = {
-  'smart-socket': [
-    { key: 'current', label: '实时电流', kind: 'number', unit: 'A' },
-    { key: 'powerUsage', label: '实时功率', kind: 'number', unit: 'W' },
-  ],
-  lock: [{ key: 'battery', label: '实时电量', kind: 'number', unit: '%' }],
-  thermostat: [{ key: 'indoorTemperature', label: '室内温度', kind: 'number', unit: '°C' }],
-  kettle: [
-    kettleTemperatureSpec,
-    { key: 'waterTemperature', label: '当前水温', kind: 'number', unit: '°C' },
-    { key: 'current', label: '工作电流', kind: 'number', unit: 'A' },
-    { key: 'voltage', label: '工作电压', kind: 'number', unit: 'V' },
-  ],
-  hairdryer: [
-    { key: 'temperatureLevel', label: '温度档位', kind: 'number', unit: '' },
-    { key: 'voltage', label: '工作电压', kind: 'number', unit: 'V' },
-    { key: 'ntcTemperature', label: 'NTC温度', kind: 'number', unit: '°C' },
-    { key: 'motorRpm', label: '电机转速', kind: 'number', unit: 'rpm' },
-    { key: 'motorCurrent', label: '电机电流', kind: 'number', unit: 'A' },
-  ],
-  pir: [{ key: 'detected', label: '感应是否有人', kind: 'readonly' }],
-  presence: [{ key: 'present', label: '感应是否有人', kind: 'readonly' }],
-}
-const statusSpecs = computed(() => {
-  const type = store.selectedDevice?.type
-  const baseSpecs =
-    type === 'remote-ac' || type === 'remote-tv'
-      ? specs.value.filter((spec) => spec.key === 'power')
-      : specs.value.filter((spec) => spec.kind !== 'action' && spec.kind !== 'action-group')
-  const statusBaseSpecs = baseSpecs.flatMap((spec) =>
-    spec.kind === 'dimmer'
-      ? [
-          { ...spec, kind: 'switch' as const },
-          {
-            ...spec,
-            key: spec.brightnessKey!,
-            label: `${spec.label}亮度`,
-            kind: 'number' as const,
-            unit: '%',
-          },
-        ]
-      : [spec],
-  )
-  return [...statusBaseSpecs, ...(type ? (statusOnlySpecs[type] ?? []) : [])]
-})
-const recentLogs = computed(() =>
-  store.selectedDevice ? sortLogsDesc(store.selectedDevice.logs).slice(0, LOG_PREVIEW_LIMIT) : [],
-)
 
 function update(key: string, value: string | number | boolean) {
   if (!store.selectedDevice) return
@@ -653,80 +556,5 @@ function selectTemperature(spec: ControlSpec, option: string) {
         </template>
       </div>
     </section>
-    <div v-if="tuningOpen" class="tv-tuning-backdrop" @click.self="closeTuning">
-      <section class="tv-tuning-dialog" role="dialog" aria-modal="true" aria-label="电视调频">
-        <header class="tv-tuning-header">
-          <div>
-            <strong>电视调频</strong>
-            <span>输入频道数字</span>
-          </div>
-          <b>{{ tuningValue || '—' }}</b>
-        </header>
-        <div class="tv-tuning-keypad">
-          <button
-            v-for="digit in tuningDigits"
-            :key="digit"
-            type="button"
-            :aria-label="`输入数字${digit}`"
-            :disabled="tuningValue.length >= 3"
-            @click="pressTuningDigit(digit)"
-          >
-            {{ digit }}
-          </button>
-          <button
-            type="button"
-            class="tv-tuning-action tv-tuning-clear"
-            :disabled="!tuningValue"
-            @click="clearTuning"
-          >
-            清除
-          </button>
-          <button
-            type="button"
-            class="tv-tuning-action tv-tuning-delete"
-            :disabled="!tuningValue"
-            @click="deleteTuningDigit"
-          >
-            删除
-          </button>
-          <button type="button" class="tv-tuning-back" @click="closeTuning">取消</button>
-          <button
-            type="button"
-            class="tv-tuning-confirm"
-            :disabled="!tuningValue"
-            @click="confirmTuning"
-          >
-            确定
-          </button>
-        </div>
-      </section>
-    </div>
-    <Teleport to="body">
-      <div
-        v-if="temperatureMenu"
-        class="temperature-menu temperature-menu--teleport"
-        :style="temperatureMenuStyle"
-        @click.stop
-      >
-        <button
-          v-for="option in temperatureMenu.spec.options"
-          :key="option"
-          type="button"
-          :class="{
-            active:
-              String(store.selectedDevice?.params[temperatureMenu.spec.key]) === option,
-          }"
-          @click="selectTemperature(temperatureMenu.spec, option)"
-        >
-          {{ option }}{{ temperatureMenu.spec.unit }}
-        </button>
-      </div>
-    </Teleport>
-    <LogHistoryDialog
-      v-if="historyDevice"
-      :key="historyDevice.id"
-      :device="historyDevice"
-      @close="historyDevice = null"
-    />
   </div>
 </template>

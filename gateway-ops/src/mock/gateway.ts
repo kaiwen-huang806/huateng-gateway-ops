@@ -56,7 +56,11 @@ export const deviceMeta: Record<DeviceType, DeviceMeta> = {
   'dimmer-mirror': { label: '镜灯调光模块', icon: Lightbulb },
   kettle: { label: '烧水壶', icon: Coffee },
   hairdryer: { label: '电吹风', icon: Wind },
+<<<<<<< HEAD
   'light-driver': { label: '2路灯光驱动', icon: Radio },
+=======
+  'light-driver': { label: '灯光驱动', icon: Radio },
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
 }
 
 // 每间客房的设备清单：这个顺序同时也是房间卡片、OTA 列表和日志表的展示顺序。
@@ -107,6 +111,7 @@ const deviceNames: Record<DeviceType, string> = {
   'dimmer-mirror': '镜灯调光模块',
   kettle: '烧水壶',
   hairdryer: '电吹风',
+<<<<<<< HEAD
   'light-driver': '2路灯光驱动',
 }
 
@@ -124,20 +129,30 @@ function dimmerParams(count: number, online: boolean, brightness: number): Devic
       [`lamp${index + 1}Brightness`, brightness],
     ]).flat(),
   )
+=======
+  'light-driver': '灯光驱动',
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
 }
 
 // 各类型设备的可下发参数。电源类设备的通电状态跟着在线状态走，模拟"设备在线即在工作"。
 const deviceParams = (type: DeviceType, online: boolean): Device['params'] => {
   switch (type) {
     case 'lock':
+<<<<<<< HEAD
       return { locked: true, battery: 86 }
     case 'card-power':
       return { inserted: online, doorMagnet: online }
+=======
+      return { locked: true }
+    case 'card-power':
+      return { inserted: online }
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
     case 'switch-1k':
     case 'switch-2k':
     case 'switch-3k':
     case 'switch-4k':
     case 'switch-6k':
+<<<<<<< HEAD
       return { power: online, ...switchParams(type, online) }
     case 'thermostat':
       return {
@@ -189,6 +204,38 @@ const deviceParams = (type: DeviceType, online: boolean): Device['params'] => {
       }
     case 'light-driver':
       return dimmerParams(2, online, 78)
+=======
+      return { power: online }
+    case 'thermostat':
+      return { mode: '制冷', temperature: 24, fan: '自动', locked: false }
+    case 'remote-ac':
+      return { power: online, mode: '制冷', temperature: 24, fan: '自动' }
+    case 'remote-tv':
+      return { power: online, volume: 20, source: 'HDMI 1' }
+    case 'curtain':
+    case 'sheer-curtain':
+      return { open: 65 }
+    case 'smart-socket':
+      return { power: online, current: 1.8 }
+    case 'pir':
+      return { detected: online, sensitivity: 75 }
+    case 'presence':
+      return { present: online, confidence: 92 }
+    case 'relay':
+      return { power: online }
+    case 'dimmer-2way':
+      return { power: online, brightness: 78 }
+    case 'dimmer-4way':
+      return { power: online, brightness: 72 }
+    case 'dimmer-mirror':
+      return { power: online, brightness: 60 }
+    case 'kettle':
+      return { power: online, temperature: 85, keepWarm: true }
+    case 'hairdryer':
+      return { power: online, level: 2 }
+    case 'light-driver':
+      return { power: online, brightness: 78 }
+>>>>>>> 17e4e8c48f7ada45c06b941ef11ebbf48789bbea
   }
 }
 
